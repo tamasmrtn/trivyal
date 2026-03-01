@@ -1,6 +1,6 @@
 """Processes incoming scan results from agents."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -20,7 +20,7 @@ async def process_scan_result(
     scan_data: dict,
 ) -> ScanResult:
     """Ingest a Trivy scan result: upsert containers, create scan record, upsert findings."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     image_name = scan_data.get("ArtifactName", "unknown")
     image_digest = scan_data.get("Metadata", {}).get("RepoDigests", [None])[0] if scan_data.get("Metadata") else None

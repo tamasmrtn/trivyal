@@ -18,6 +18,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Trivyal Hub", version="0.1.0", lifespan=lifespan)
 
+
 # Health check (no auth)
 @app.get("/api/health")
 async def health():

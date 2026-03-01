@@ -1,16 +1,15 @@
 """WebSocket connection manager for agents."""
 
 import logging
-import os
 import secrets
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from trivyal_hub.core.aggregator import process_scan_result
-from trivyal_hub.core.auth import hash_token, sign_challenge, verify_token
+from trivyal_hub.core.auth import sign_challenge, verify_token
 from trivyal_hub.db.models import Agent, AgentStatus
 
 logger = logging.getLogger(__name__)
@@ -35,11 +34,13 @@ class ConnectionManager:
         # Challenge-response: hub signs a random challenge, agent verifies
         challenge = secrets.token_bytes(32)
         signature = sign_challenge(agent.private_key, challenge)
-        await ws.send_json({
-            "type": "challenge",
-            "challenge": challenge.hex(),
-            "signature": signature.hex(),
-        })
+        await ws.send_json(
+            {
+                "type": "challenge",
+                "challenge": challenge.hex(),
+                "signature": signature.hex(),
+            }
+        )
 
         return agent
 
@@ -71,7 +72,7 @@ class ConnectionManager:
 
         await self.connect(agent.id, ws)
         agent.status = AgentStatus.ONLINE
-        agent.last_seen = datetime.now(timezone.utc)
+        agent.last_seen = datetime.now(UTC)
         session.add(agent)
         await session.commit()
 
@@ -94,7 +95,7 @@ class ConnectionManager:
 
                 elif msg_type == "host_metadata":
                     agent.host_metadata = data.get("metadata")
-                    agent.last_seen = datetime.now(timezone.utc)
+                    agent.last_seen = datetime.now(UTC)
                     session.add(agent)
                     await session.commit()
 
@@ -107,12 +108,12 @@ class ConnectionManager:
                     await process_scan_result(session, agent.id, scan_data)
 
                     agent.status = AgentStatus.ONLINE
-                    agent.last_seen = datetime.now(timezone.utc)
+                    agent.last_seen = datetime.now(UTC)
                     session.add(agent)
                     await session.commit()
 
                 elif msg_type == "heartbeat":
-                    agent.last_seen = datetime.now(timezone.utc)
+                    agent.last_seen = datetime.now(UTC)
                     session.add(agent)
                     await session.commit()
                     await ws.send_json({"type": "heartbeat_ack"})
@@ -122,7 +123,7 @@ class ConnectionManager:
         finally:
             self.disconnect(agent.id)
             agent.status = AgentStatus.OFFLINE
-            agent.last_seen = datetime.now(timezone.utc)
+            agent.last_seen = datetime.now(UTC)
             session.add(agent)
             await session.commit()
 

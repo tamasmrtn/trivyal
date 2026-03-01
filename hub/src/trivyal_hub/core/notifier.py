@@ -32,11 +32,9 @@ def _format_payload(webhook_type: str | None, findings: list[dict]) -> dict:
     count = len(findings)
     summary = f"Trivyal: {count} new critical/high finding(s) detected"
 
-    if webhook_type == "slack":
-        return {"text": summary}
-    elif webhook_type == "discord":
-        return {"content": summary}
-    elif webhook_type == "ntfy":
-        return {"topic": "trivyal", "title": "New Vulnerabilities", "message": summary}
-    else:
-        return {"summary": summary, "count": count, "findings": findings}
+    formatters = {
+        "slack": {"text": summary},
+        "discord": {"content": summary},
+        "ntfy": {"topic": "trivyal", "title": "New Vulnerabilities", "message": summary},
+    }
+    return formatters.get(webhook_type, {"summary": summary, "count": count, "findings": findings})

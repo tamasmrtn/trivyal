@@ -1,7 +1,5 @@
 """Tests for the settings endpoint."""
 
-import pytest
-
 
 class TestGetSettings:
     async def test_returns_defaults(self, client, auth_header):

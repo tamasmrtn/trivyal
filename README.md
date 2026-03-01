@@ -168,9 +168,15 @@ trivyal/
 └── docs/     # Architecture and guides
 ```
 
-**Install all dependencies:**
+**Install all dependencies (including pre-commit hooks):**
 ```bash
 make init
+```
+
+This installs [pre-commit](https://pre-commit.com/) as a uv tool and sets up git hooks for linting (ruff), formatting, security scanning (bandit), and lockfile validation. To run all hooks manually:
+
+```bash
+make lint
 ```
 
 **Run a service in dev mode:**

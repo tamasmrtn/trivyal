@@ -1,7 +1,5 @@
 """Tests for the dashboard summary endpoint."""
 
-import pytest
-
 from trivyal_hub.db.models import Container, Finding, ScanResult, Severity
 
 

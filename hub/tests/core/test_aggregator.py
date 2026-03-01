@@ -1,12 +1,10 @@
 """Tests for the scan result aggregator."""
 
-import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
-
 from trivyal_hub.core.aggregator import process_scan_result
-from trivyal_hub.db.models import Agent, Container, Finding, ScanResult
 from trivyal_hub.core.auth import generate_keypair, generate_token, hash_token
+from trivyal_hub.db.models import Agent, Container, Finding
 
 
 async def _create_agent(session: AsyncSession) -> Agent:
@@ -74,7 +72,7 @@ class TestProcessScanResult:
     async def test_updates_existing_finding_last_seen(self, session):
         agent = await _create_agent(session)
         await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT)
-        scan2 = await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT)
+        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT)
 
         findings = (await session.execute(select(Finding))).scalars().all()
         # Should still have 2 findings (not 4), existing ones get updated

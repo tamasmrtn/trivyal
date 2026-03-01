@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     secret_key: str = "change-me"
     data_dir: Path = Path("/app/data")
-    host: str = "0.0.0.0"
+    host: str = "0.0.0.0"  # noqa: S104  # nosec B104 — bind all interfaces for Docker
     port: int = 8099
     admin_password: str = "admin"
     database_url: str | None = None

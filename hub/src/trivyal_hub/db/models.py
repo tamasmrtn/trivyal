@@ -1,14 +1,14 @@
 """SQLModel table definitions for the hub database."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from uuid import uuid4
 
-from sqlmodel import Field, Relationship, SQLModel, Column, JSON
+from sqlmodel import JSON, Column, Field, Relationship, SQLModel
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _new_id() -> str:
@@ -54,7 +54,7 @@ class Agent(SQLModel, table=True):
     host_metadata: dict | None = Field(default=None, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=_utcnow)
 
-    containers: list["Container"] = Relationship(
+    containers: list[Container] = Relationship(
         back_populates="agent",
         cascade_delete=True,
     )
@@ -69,7 +69,7 @@ class Container(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_utcnow)
 
     agent: Agent = Relationship(back_populates="containers")
-    scan_results: list["ScanResult"] = Relationship(
+    scan_results: list[ScanResult] = Relationship(
         back_populates="container",
         cascade_delete=True,
     )
@@ -88,7 +88,7 @@ class ScanResult(SQLModel, table=True):
     unknown_count: int = Field(default=0)
 
     container: Container = Relationship(back_populates="scan_results")
-    findings: list["Finding"] = Relationship(
+    findings: list[Finding] = Relationship(
         back_populates="scan_result",
         cascade_delete=True,
     )
@@ -107,7 +107,7 @@ class Finding(SQLModel, table=True):
     last_seen: datetime = Field(default_factory=_utcnow)
 
     scan_result: ScanResult = Relationship(back_populates="findings")
-    acceptances: list["RiskAcceptance"] = Relationship(
+    acceptances: list[RiskAcceptance] = Relationship(
         back_populates="finding",
         cascade_delete=True,
     )

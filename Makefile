@@ -1,10 +1,10 @@
-.PHONY: init init-hub init-agent init-ui \
+.PHONY: init init-hub init-agent init-ui init-hooks \
         test test-hub test-agent test-ui \
-        dev-hub dev-agent dev-ui
+        dev-hub dev-agent dev-ui lint
 
 # ── Init ──────────────────────────────────────────────────────────────────────
 
-init: init-hub init-agent init-ui
+init: init-hub init-agent init-ui init-hooks
 
 init-hub:
 	cd hub && uv sync
@@ -14,6 +14,15 @@ init-agent:
 
 init-ui:
 	cd ui && npm install
+
+init-hooks:
+	uv tool install pre-commit
+	pre-commit install
+
+# ── Lint ──────────────────────────────────────────────────────────────────────
+
+lint:
+	pre-commit run --all-files
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 

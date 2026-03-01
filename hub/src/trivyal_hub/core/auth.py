@@ -7,7 +7,6 @@ from base64 import b64decode, b64encode
 
 from nacl.signing import SigningKey, VerifyKey
 
-
 TOKEN_BYTES = 32
 
 

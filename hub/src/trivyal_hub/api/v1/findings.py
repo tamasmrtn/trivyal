@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select, func
+from sqlmodel import func, select
 
 from trivyal_hub.api.deps import require_auth
 from trivyal_hub.db.models import Finding, FindingStatus, RiskAcceptance, Severity
@@ -46,9 +46,7 @@ async def list_findings(
         count_q = count_q.where(Finding.package_name == package)
 
     total = (await session.execute(count_q)).scalar_one()
-    results = (
-        await session.execute(query.offset((page - 1) * page_size).limit(page_size))
-    ).scalars().all()
+    results = (await session.execute(query.offset((page - 1) * page_size).limit(page_size))).scalars().all()
 
     return PaginatedResponse(
         data=[FindingResponse.model_validate(f, from_attributes=True) for f in results],

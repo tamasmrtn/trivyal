@@ -4,7 +4,6 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlmodel import SQLModel
-
 from trivyal_hub.config import settings
 from trivyal_hub.core.auth import generate_admin_token
 from trivyal_hub.db.session import get_session

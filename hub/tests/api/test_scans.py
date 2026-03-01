@@ -1,7 +1,5 @@
 """Tests for scan endpoints."""
 
-import pytest
-
 
 class TestTriggerScan:
     async def test_returns_202_with_job_id(self, client, auth_header):

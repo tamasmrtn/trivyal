@@ -1,7 +1,5 @@
 """Tests for agent CRUD endpoints."""
 
-import pytest
-
 
 class TestListAgents:
     async def test_returns_empty_list_when_no_agents(self, client, auth_header):

@@ -1,7 +1,5 @@
 """Tests for token and key management."""
 
-import pytest
-
 from trivyal_hub.core.auth import (
     generate_admin_token,
     generate_keypair,

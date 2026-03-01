@@ -1,9 +1,7 @@
 """Tests for finding and risk acceptance endpoints."""
 
-import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from trivyal_hub.db.models import Container, Finding, FindingStatus, ScanResult, Severity
+from trivyal_hub.db.models import Container, Finding, ScanResult, Severity
 
 
 async def _seed_finding(session: AsyncSession, agent_id: str) -> Finding:

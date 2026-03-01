@@ -1,7 +1,7 @@
 """Auth endpoints — login to get an API token."""
 
-from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel
 
 from trivyal_hub.config import settings
 from trivyal_hub.core.auth import generate_admin_token

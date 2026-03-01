@@ -1,0 +1,14 @@
+# Root-level tool configuration for linting and security scanning.
+# This is NOT a Python project — each service has its own pyproject.toml.
+
+[tool.ruff]
+target-version = "py314"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["B008"]  # FastAPI uses Depends/Query in function defaults by design
+
+[tool.bandit]
+exclude_dirs = [".venv", "tests"]
+skips = ["B101"]  # allow assert in test code

@@ -1,0 +1,45 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-ast
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-json
+        exclude: ^ui/
+      - id: check-toml
+      - id: pretty-format-json
+        args: [--autofix, --no-sort-keys]
+        exclude: ^ui/
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.4
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        files: ^(hub|agent)/
+      - id: ruff-format
+        files: ^(hub|agent)/
+
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.10.7
+    hooks:
+      - id: uv-lock
+        name: uv-lock (hub)
+        args: [--directory, hub]
+        files: ^hub/pyproject\.toml$
+      - id: uv-lock
+        name: uv-lock (agent)
+        args: [--directory, agent]
+        files: ^agent/pyproject\.toml$
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: ["-c", "pyproject.toml"]
+        files: ^(hub|agent)/src/
+        additional_dependencies: ["bandit[toml]"]

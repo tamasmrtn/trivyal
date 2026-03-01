@@ -1,9 +1,9 @@
 """Dashboard summary endpoint."""
 
-from pydantic import BaseModel
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select, func
+from sqlmodel import func, select
 
 from trivyal_hub.api.deps import require_auth
 from trivyal_hub.db.models import Agent, AgentStatus, Finding, FindingStatus, Severity
@@ -53,11 +53,7 @@ async def get_summary(session: AsyncSession = Depends(get_session)):
     )
 
     # Agent status counts
-    agent_rows = (
-        await session.execute(
-            select(Agent.status, func.count()).group_by(Agent.status)
-        )
-    ).all()
+    agent_rows = (await session.execute(select(Agent.status, func.count()).group_by(Agent.status))).all()
     agent_map = {row[0]: row[1] for row in agent_rows}
     agent_status_counts = AgentStatusCounts(
         online=agent_map.get(AgentStatus.ONLINE, 0),
@@ -66,9 +62,7 @@ async def get_summary(session: AsyncSession = Depends(get_session)):
     )
 
     total_findings = (
-        await session.execute(
-            select(func.count()).select_from(Finding).where(Finding.status == FindingStatus.ACTIVE)
-        )
+        await session.execute(select(func.count()).select_from(Finding).where(Finding.status == FindingStatus.ACTIVE))
     ).scalar_one()
 
     total_agents = (await session.execute(select(func.count()).select_from(Agent))).scalar_one()
