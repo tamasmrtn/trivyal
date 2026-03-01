@@ -1,0 +1,87 @@
+import { useState } from "react";
+import { FindingTable, FindingFilters, useFindings } from "@/features/findings";
+import type { FindingStatus, Severity } from "@/lib/api/types";
+
+export function Findings() {
+  const [severity, setSeverity] = useState<Severity | undefined>();
+  const [status, setStatus] = useState<FindingStatus | undefined>();
+  const [page, setPage] = useState(1);
+
+  const { data, total, loading, error, refetch } = useFindings({
+    severity,
+    status,
+    page,
+    page_size: 50,
+  });
+
+  const totalPages = Math.max(1, Math.ceil(total / 50));
+
+  function handleSeverityChange(value: Severity | undefined) {
+    setSeverity(value);
+    setPage(1);
+  }
+
+  function handleStatusChange(value: FindingStatus | undefined) {
+    setStatus(value);
+    setPage(1);
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <p className="text-muted-foreground">Loading findings...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <p className="text-destructive-foreground">{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Findings</h1>
+        <FindingFilters
+          severity={severity}
+          status={status}
+          onSeverityChange={handleSeverityChange}
+          onStatusChange={handleStatusChange}
+        />
+      </div>
+
+      <FindingTable findings={data} onAccepted={refetch} />
+
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-muted-foreground text-sm">
+            {total} finding{total !== 1 ? "s" : ""} total
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="text-foreground rounded border px-3 py-1 text-sm disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="text-muted-foreground px-2 py-1 text-sm">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="text-foreground rounded border px-3 py-1 text-sm disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
