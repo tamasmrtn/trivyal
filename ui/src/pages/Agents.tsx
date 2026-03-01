@@ -1,5 +1,6 @@
 import { AgentTable, AddAgentDialog, useAgents } from "@/features/agents";
 import { deleteAgent } from "@/lib/api/agents";
+import { triggerScan } from "@/lib/api/scans";
 
 export function Agents() {
   const { data, loading, error, refetch } = useAgents();
@@ -10,6 +11,14 @@ export function Agents() {
       refetch();
     } catch {
       // Silently fail — the agent remains in the list
+    }
+  }
+
+  async function handleTriggerScan(id: string) {
+    try {
+      await triggerScan(id);
+    } catch {
+      // Best-effort — agent may not be connected
     }
   }
 
@@ -35,7 +44,11 @@ export function Agents() {
         <h1 className="text-2xl font-bold">Agents</h1>
         <AddAgentDialog onCreated={refetch} />
       </div>
-      <AgentTable agents={data} onDelete={handleDelete} />
+      <AgentTable
+        agents={data}
+        onDelete={handleDelete}
+        onTriggerScan={handleTriggerScan}
+      />
     </div>
   );
 }

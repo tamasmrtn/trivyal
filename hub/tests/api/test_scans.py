@@ -1,14 +1,27 @@
 """Tests for scan endpoints."""
 
+from unittest.mock import AsyncMock, patch
+
 
 class TestTriggerScan:
-    async def test_returns_202_with_job_id(self, client, auth_header):
+    async def test_returns_202_with_job_id_when_agent_connected(self, client, auth_header):
         create_resp = await client.post("/api/v1/agents", json={"name": "s1"}, headers=auth_header)
         agent_id = create_resp.json()["id"]
 
-        response = await client.post(f"/api/v1/agents/{agent_id}/scans", headers=auth_header)
+        with patch("trivyal_hub.api.v1.scans.manager.send_scan_trigger", new=AsyncMock(return_value=True)):
+            response = await client.post(f"/api/v1/agents/{agent_id}/scans", headers=auth_header)
+
         assert response.status_code == 202
         assert "job_id" in response.json()
+
+    async def test_returns_409_when_agent_not_connected(self, client, auth_header):
+        create_resp = await client.post("/api/v1/agents", json={"name": "s1"}, headers=auth_header)
+        agent_id = create_resp.json()["id"]
+
+        with patch("trivyal_hub.api.v1.scans.manager.send_scan_trigger", new=AsyncMock(return_value=False)):
+            response = await client.post(f"/api/v1/agents/{agent_id}/scans", headers=auth_header)
+
+        assert response.status_code == 409
 
     async def test_returns_404_for_unknown_agent(self, client, auth_header):
         response = await client.post("/api/v1/agents/bad-id/scans", headers=auth_header)

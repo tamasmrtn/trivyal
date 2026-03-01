@@ -94,6 +94,48 @@ User                    Hub                         Agent
 
 After initial registration, the agent reconnects using the same token + fingerprint pair. The fingerprint locks the agent to the original machine — a stolen token cannot be used from a different host.
 
+## 3.1 On-Demand Scan Trigger Flow
+
+Once an agent is connected, the hub can initiate a scan at any time via the REST API. The REST call is the entry point; the actual work is done over the existing WebSocket connection.
+
+```
+User                    Hub                         Agent
+ │                       │                            │
+ │  1. Click "Scan Now"  │                            │
+ │     in Agents UI      │                            │
+ │──────────────────────►│                            │
+ │                       │                            │
+ │   POST /api/v1/        │                            │
+ │   agents/{id}/scans   │                            │
+ │                       │                            │
+ │                       │  2. Hub looks up agent     │
+ │                       │     in DB (404 if missing) │
+ │                       │                            │
+ │                       │  3. Hub sends over WS:     │
+ │                       │     {type: scan_trigger}   │
+ │                       │────────────────────────── ►│
+ │                       │   (409 if not connected)   │
+ │                       │                            │
+ │  4. 202 Accepted       │  5. Agent runs scan cycle  │
+ │◄──────────────────────│     (discovers containers, │
+ │  { job_id }           │     invokes Trivy per image)│
+ │                       │                            │
+ │                       │  6. Agent sends results    │
+ │                       │◄──────────────────────────│
+ │                       │     {type: scan_result,    │
+ │                       │      data: <trivy JSON>}   │
+ │                       │                            │
+ │                       │  7. Hub stores ScanResult  │
+ │                       │     + Findings in DB;      │
+ │                       │     agent status → online  │
+```
+
+**Error cases:**
+- `404 Not Found` — agent ID does not exist in the database.
+- `409 Conflict` — agent exists but is not currently connected via WebSocket (offline or scanning).
+
+The trigger is fire-and-forget from the REST perspective: the `202 Accepted` response confirms the message was delivered to the agent over the WebSocket. There is no long-polling or callback — the UI can poll the scan history endpoint to see new results appear.
+
 ---
 
 ## 4. Tech Stack

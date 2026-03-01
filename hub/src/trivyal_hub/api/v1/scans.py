@@ -11,6 +11,7 @@ from trivyal_hub.db.models import Agent, ScanResult
 from trivyal_hub.db.session import get_session
 from trivyal_hub.schemas.common import PaginatedResponse
 from trivyal_hub.schemas.scans import ScanResultDetail, ScanResultResponse, ScanTriggerResponse
+from trivyal_hub.ws.manager import manager
 
 router = APIRouter(tags=["scans"], dependencies=[Depends(require_auth)])
 
@@ -27,7 +28,14 @@ async def trigger_scan(
     agent = await session.get(Agent, agent_id)
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
-    # The actual scan is sent to the agent via WebSocket; return a job ID
+
+    sent = await manager.send_scan_trigger(agent_id)
+    if not sent:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Agent is not connected",
+        )
+
     return ScanTriggerResponse(job_id=uuid4().hex)
 
 
