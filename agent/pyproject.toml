@@ -1,0 +1,29 @@
+[project]
+name = "trivyal-agent"
+version = "0.1.0"
+description = "Trivyal agent — runs on each host, discovers containers, and ships scan results to hub"
+requires-python = ">=3.14"
+dependencies = [
+    "pydantic-settings>=2.13",
+    "pynacl>=1.6",
+    "websockets>=14",
+    "docker>=7",
+    "croniter>=4",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9",
+    "pytest-asyncio>=1.3",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/trivyal_agent"]

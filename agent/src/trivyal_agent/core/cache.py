@@ -1,0 +1,56 @@
+"""Local result cache — persists last Trivy scan results to disk as JSON.
+
+Used for resilience when the hub is temporarily unreachable: the agent stores
+each scan result locally and can re-send them after reconnection.
+"""
+
+import json
+import logging
+import re
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+_SAFE_NAME_RE = re.compile(r"[^\w.-]")
+
+
+def _safe_filename(image_name: str) -> str:
+    """Convert an image name to a safe filesystem filename."""
+    return _SAFE_NAME_RE.sub("_", image_name)[:200] + ".json"
+
+
+def save(data_dir: Path, image_name: str, result: dict) -> None:
+    """Persist a Trivy scan result for *image_name* to disk."""
+    cache_dir = data_dir / "cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_file = cache_dir / _safe_filename(image_name)
+    try:
+        cache_file.write_text(json.dumps(result))
+    except OSError:
+        logger.exception("Failed to write cache for %s", image_name)
+
+
+def load(data_dir: Path, image_name: str) -> dict | None:
+    """Load the cached Trivy scan result for *image_name*, or None if absent."""
+    cache_file = data_dir / "cache" / _safe_filename(image_name)
+    if not cache_file.exists():
+        return None
+    try:
+        return json.loads(cache_file.read_text())
+    except Exception:
+        logger.exception("Failed to read cache for %s", image_name)
+        return None
+
+
+def list_cached(data_dir: Path) -> list[dict]:
+    """Return all cached scan results from disk."""
+    cache_dir = data_dir / "cache"
+    if not cache_dir.exists():
+        return []
+    results = []
+    for cache_file in cache_dir.glob("*.json"):
+        try:
+            results.append(json.loads(cache_file.read_text()))
+        except Exception:
+            logger.exception("Failed to read cache file %s", cache_file)
+    return results
