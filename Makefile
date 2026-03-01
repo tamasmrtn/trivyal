@@ -40,7 +40,8 @@ test-ui:
 # ── Dev ───────────────────────────────────────────────────────────────────────
 
 dev-hub:
-	cd hub && uv run fastapi dev src/trivyal_hub/main.py
+	@mkdir -p hub/data
+	cd hub && TRIVYAL_DATA_DIR=data uv run fastapi dev --port 8099 src/trivyal_hub/main.py
 
 dev-agent:
 	cd agent && uv run python -m trivyal_agent.main

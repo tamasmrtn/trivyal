@@ -358,5 +358,8 @@ vite.config.ts.timestamp-*
 ui/dist/
 *.tsbuildinfo
 
+# Local dev data
+hub/data/
+
 # claude
 .claude/
