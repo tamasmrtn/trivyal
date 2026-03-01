@@ -8,6 +8,7 @@ import { Agents } from "@/pages/Agents";
 import { Findings } from "@/pages/Findings";
 import { FindingDetail } from "@/pages/FindingDetail";
 import { ScanHistory } from "@/pages/ScanHistory";
+import { Settings } from "@/pages/Settings";
 import { Login } from "@/pages/Login";
 import "./app.css";
 
@@ -33,6 +34,7 @@ function App() {
         <Route path="findings" element={<Findings />} />
         <Route path="findings/:id" element={<FindingDetail />} />
         <Route path="scans" element={<ScanHistory />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
   );
