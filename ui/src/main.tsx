@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth";
 import { PageLayout } from "@/components/common/PageLayout";
 import { Dashboard } from "@/pages/Dashboard";
+import { Agents } from "@/pages/Agents";
 import { Login } from "@/pages/Login";
 import "./app.css";
 
@@ -25,6 +26,7 @@ function App() {
         }
       >
         <Route index element={<Dashboard />} />
+        <Route path="agents" element={<Agents />} />
       </Route>
     </Routes>
   );
