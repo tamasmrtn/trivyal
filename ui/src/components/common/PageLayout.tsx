@@ -21,21 +21,36 @@ const navItems = [
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
+function getInitialDark(): boolean {
+  try {
+    return localStorage.getItem("trivyal_theme") !== "light";
+  } catch {
+    return true;
+  }
+}
+
 export function PageLayout() {
   const logout = useAuthStore((s) => s.logout);
-  const [dark, setDark] = useState(true);
+  const [dark, setDark] = useState(getInitialDark);
 
   function toggleTheme() {
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
+    try {
+      localStorage.setItem("trivyal_theme", next ? "dark" : "light");
+    } catch {
+      // ignore storage errors
+    }
   }
 
   return (
     <div className="flex h-screen">
       <aside className="bg-card flex w-56 flex-col border-r">
         <div className="flex h-14 items-center border-b px-4">
-          <span className="text-lg font-bold tracking-tight">Trivyal</span>
+          <span className="font-mono text-lg font-bold tracking-wide">
+            trivy<span className="text-primary">al</span>
+          </span>
         </div>
         <nav className="flex-1 space-y-1 p-2">
           {navItems.map(({ to, icon: Icon, label }) => (
@@ -45,7 +60,7 @@ export function PageLayout() {
               end={to === "/"}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium tracking-wide transition-colors",
                   isActive
                     ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",

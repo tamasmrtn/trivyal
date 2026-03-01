@@ -68,16 +68,16 @@ export function ScanTable({ scans }: ScanTableProps) {
                 </span>
               </TableCell>
               <TableCell className="text-center">
-                <Count value={scan.critical_count} className="text-red-500" />
+                <Count value={scan.critical_count} className="text-red-600" />
               </TableCell>
               <TableCell className="text-center">
-                <Count value={scan.high_count} className="text-orange-500" />
+                <Count value={scan.high_count} className="text-orange-600" />
               </TableCell>
               <TableCell className="text-center">
-                <Count value={scan.medium_count} className="text-yellow-500" />
+                <Count value={scan.medium_count} className="text-amber-600" />
               </TableCell>
               <TableCell className="text-center">
-                <Count value={scan.low_count} className="text-blue-500" />
+                <Count value={scan.low_count} className="text-blue-600" />
               </TableCell>
               <TableCell className="text-center">
                 <Count

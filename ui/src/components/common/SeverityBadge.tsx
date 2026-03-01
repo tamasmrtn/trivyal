@@ -3,11 +3,11 @@ import { cn } from "@/lib/utils";
 import type { Severity } from "@/lib/api/types";
 
 const severityStyles: Record<Severity, string> = {
-  CRITICAL: "bg-red-600 text-white border-red-600",
-  HIGH: "bg-orange-500 text-white border-orange-500",
-  MEDIUM: "bg-yellow-500 text-black border-yellow-500",
-  LOW: "bg-blue-500 text-white border-blue-500",
-  UNKNOWN: "bg-gray-500 text-white border-gray-500",
+  CRITICAL: "bg-red-600 text-white border-transparent",
+  HIGH: "bg-orange-600 text-white border-transparent",
+  MEDIUM: "bg-amber-600 text-black border-transparent",
+  LOW: "bg-blue-600 text-white border-transparent",
+  UNKNOWN: "bg-gray-600 text-white border-transparent",
 };
 
 interface SeverityBadgeProps {

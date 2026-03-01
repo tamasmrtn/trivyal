@@ -86,7 +86,7 @@ export function FindingDetail() {
 
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{finding.cve_id}</h1>
+          <h1 className="font-mono text-2xl font-bold">{finding.cve_id}</h1>
           <p className="text-muted-foreground mt-1 text-sm">
             {finding.package_name} &middot; {finding.installed_version}
             {finding.fixed_version && ` → ${finding.fixed_version}`}
@@ -112,11 +112,13 @@ export function FindingDetail() {
             <dt className="text-muted-foreground w-40 shrink-0">
               Installed version
             </dt>
-            <dd>{finding.installed_version}</dd>
+            <dd className="font-mono text-xs">{finding.installed_version}</dd>
           </div>
           <div className="flex px-4 py-3">
             <dt className="text-muted-foreground w-40 shrink-0">Fixed in</dt>
-            <dd>{finding.fixed_version ?? "—"}</dd>
+            <dd className="font-mono text-xs">
+              {finding.fixed_version ?? "—"}
+            </dd>
           </div>
           <div className="flex px-4 py-3">
             <dt className="text-muted-foreground w-40 shrink-0">First seen</dt>

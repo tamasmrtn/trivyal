@@ -61,7 +61,7 @@ export function ScanHistory() {
             value={agentId ?? ""}
             onChange={(e) => handleAgentChange(e.target.value)}
             aria-label="Filter by agent"
-            className="border-input bg-background text-foreground rounded-md border px-3 py-2 text-sm"
+            className="bg-input text-foreground focus:ring-ring rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           >
             <option value="">All Agents</option>
             {agents.map((agent) => (
@@ -97,7 +97,7 @@ export function ScanHistory() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="text-foreground rounded border px-3 py-1 text-sm disabled:opacity-50"
+              className="text-foreground hover:bg-accent hover:text-accent-foreground rounded-md border px-3 py-1 text-sm transition-colors disabled:opacity-50"
             >
               Previous
             </button>
@@ -107,7 +107,7 @@ export function ScanHistory() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="text-foreground rounded border px-3 py-1 text-sm disabled:opacity-50"
+              className="text-foreground hover:bg-accent hover:text-accent-foreground rounded-md border px-3 py-1 text-sm transition-colors disabled:opacity-50"
             >
               Next
             </button>

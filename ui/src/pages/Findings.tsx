@@ -65,7 +65,7 @@ export function Findings() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="text-foreground rounded border px-3 py-1 text-sm disabled:opacity-50"
+              className="text-foreground hover:bg-accent hover:text-accent-foreground rounded-md border px-3 py-1 text-sm transition-colors disabled:opacity-50"
             >
               Previous
             </button>
@@ -75,7 +75,7 @@ export function Findings() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="text-foreground rounded border px-3 py-1 text-sm disabled:opacity-50"
+              className="text-foreground hover:bg-accent hover:text-accent-foreground rounded-md border px-3 py-1 text-sm transition-colors disabled:opacity-50"
             >
               Next
             </button>

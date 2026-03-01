@@ -5,10 +5,10 @@ import type { Severity } from "@/lib/api/types";
 describe("SeverityBadge", () => {
   const cases: { severity: Severity; colorClass: string }[] = [
     { severity: "CRITICAL", colorClass: "bg-red-600" },
-    { severity: "HIGH", colorClass: "bg-orange-500" },
-    { severity: "MEDIUM", colorClass: "bg-yellow-500" },
-    { severity: "LOW", colorClass: "bg-blue-500" },
-    { severity: "UNKNOWN", colorClass: "bg-gray-500" },
+    { severity: "HIGH", colorClass: "bg-orange-600" },
+    { severity: "MEDIUM", colorClass: "bg-amber-600" },
+    { severity: "LOW", colorClass: "bg-blue-600" },
+    { severity: "UNKNOWN", colorClass: "bg-gray-600" },
   ];
 
   it.each(cases)(

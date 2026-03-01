@@ -82,7 +82,7 @@ describe("FindingTable", () => {
 
   it("renders dash when fixed_version is null", () => {
     renderTable();
-    expect(screen.getByText("-")).toBeInTheDocument();
+    expect(screen.getByText("—")).toBeInTheDocument();
   });
 
   it("shows accept risk button only for active findings", () => {

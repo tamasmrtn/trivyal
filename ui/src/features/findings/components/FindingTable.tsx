@@ -50,14 +50,21 @@ export function FindingTable({ findings, onAccepted }: FindingTableProps) {
       <TableBody>
         {findings.map((finding) => (
           <TableRow key={finding.id}>
-            <TableCell className="font-medium">
-              <Link to={`/findings/${finding.id}`} className="hover:underline">
+            <TableCell>
+              <Link
+                to={`/findings/${finding.id}`}
+                className="font-mono text-xs hover:underline"
+              >
                 {finding.cve_id}
               </Link>
             </TableCell>
             <TableCell>{finding.package_name}</TableCell>
-            <TableCell>{finding.installed_version}</TableCell>
-            <TableCell>{finding.fixed_version ?? "-"}</TableCell>
+            <TableCell className="font-mono text-xs">
+              {finding.installed_version}
+            </TableCell>
+            <TableCell className="font-mono text-xs">
+              {finding.fixed_version ?? "—"}
+            </TableCell>
             <TableCell>
               <SeverityBadge severity={finding.severity} />
             </TableCell>

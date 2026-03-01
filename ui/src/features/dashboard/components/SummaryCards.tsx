@@ -21,26 +21,26 @@ const severityCards = [
     key: "critical" as const,
     label: "Critical",
     icon: ShieldAlert,
-    color: "text-red-500",
+    color: "text-red-600",
   },
   {
     key: "high" as const,
     label: "High",
     icon: AlertTriangle,
-    color: "text-orange-500",
+    color: "text-orange-600",
   },
   {
     key: "medium" as const,
     label: "Medium",
     icon: AlertCircle,
-    color: "text-yellow-500",
+    color: "text-amber-600",
   },
-  { key: "low" as const, label: "Low", icon: Info, color: "text-blue-500" },
+  { key: "low" as const, label: "Low", icon: Info, color: "text-blue-600" },
   {
     key: "unknown" as const,
     label: "Unknown",
     icon: HelpCircle,
-    color: "text-gray-500",
+    color: "text-gray-600",
   },
 ] as const;
 
@@ -49,19 +49,19 @@ const agentStatusCards = [
     key: "online" as const,
     label: "Online",
     icon: Wifi,
-    color: "text-green-500",
+    color: "text-green-600",
   },
   {
     key: "offline" as const,
     label: "Offline",
     icon: WifiOff,
-    color: "text-red-500",
+    color: "text-red-600",
   },
   {
     key: "scanning" as const,
     label: "Scanning",
     icon: Loader,
-    color: "text-blue-500",
+    color: "text-primary",
   },
 ] as const;
 

@@ -1,6 +1,8 @@
-# Trivyal
+<p align="center">
+  <img src="docs/trivyal-logo-with-name.jpeg" alt="Trivyal" width="280" />
+</p>
 
-A lightweight, self-hosted container vulnerability scanner with a hub-agent model, powered by [Trivy](https://github.com/aquasecurity/trivy).
+<p align="center">A lightweight, self-hosted container vulnerability scanner with a hub-agent model, powered by <a href="https://github.com/aquasecurity/trivy">Trivy</a>.</p>
 
 Trivyal is designed for homelabs and small multi-server Docker environments. A lightweight agent runs on each host, scans local containers with Trivy, and ships results to a central hub that aggregates and displays everything in a single UI.
 
