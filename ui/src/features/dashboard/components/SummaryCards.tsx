@@ -1,9 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DashboardSummary } from "@/lib/api/types";
 import {
   ShieldAlert,
@@ -22,17 +17,52 @@ interface SummaryCardsProps {
 }
 
 const severityCards = [
-  { key: "critical" as const, label: "Critical", icon: ShieldAlert, color: "text-red-500" },
-  { key: "high" as const, label: "High", icon: AlertTriangle, color: "text-orange-500" },
-  { key: "medium" as const, label: "Medium", icon: AlertCircle, color: "text-yellow-500" },
+  {
+    key: "critical" as const,
+    label: "Critical",
+    icon: ShieldAlert,
+    color: "text-red-500",
+  },
+  {
+    key: "high" as const,
+    label: "High",
+    icon: AlertTriangle,
+    color: "text-orange-500",
+  },
+  {
+    key: "medium" as const,
+    label: "Medium",
+    icon: AlertCircle,
+    color: "text-yellow-500",
+  },
   { key: "low" as const, label: "Low", icon: Info, color: "text-blue-500" },
-  { key: "unknown" as const, label: "Unknown", icon: HelpCircle, color: "text-gray-500" },
+  {
+    key: "unknown" as const,
+    label: "Unknown",
+    icon: HelpCircle,
+    color: "text-gray-500",
+  },
 ] as const;
 
 const agentStatusCards = [
-  { key: "online" as const, label: "Online", icon: Wifi, color: "text-green-500" },
-  { key: "offline" as const, label: "Offline", icon: WifiOff, color: "text-red-500" },
-  { key: "scanning" as const, label: "Scanning", icon: Loader, color: "text-blue-500" },
+  {
+    key: "online" as const,
+    label: "Online",
+    icon: Wifi,
+    color: "text-green-500",
+  },
+  {
+    key: "offline" as const,
+    label: "Offline",
+    icon: WifiOff,
+    color: "text-red-500",
+  },
+  {
+    key: "scanning" as const,
+    label: "Scanning",
+    icon: Loader,
+    color: "text-blue-500",
+  },
 ] as const;
 
 export function SummaryCards({ data }: SummaryCardsProps) {
@@ -83,7 +113,7 @@ export function SummaryCards({ data }: SummaryCardsProps) {
               <CardTitle className="text-sm font-medium">
                 Total Active Findings
               </CardTitle>
-              <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+              <ShieldAlert className="text-muted-foreground h-4 w-4" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{data.total_findings}</div>
@@ -94,7 +124,7 @@ export function SummaryCards({ data }: SummaryCardsProps) {
               <CardTitle className="text-sm font-medium">
                 Total Agents
               </CardTitle>
-              <Server className="h-4 w-4 text-muted-foreground" />
+              <Server className="text-muted-foreground h-4 w-4" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{data.total_agents}</div>

@@ -33,7 +33,7 @@ export function PageLayout() {
 
   return (
     <div className="flex h-screen">
-      <aside className="flex w-56 flex-col border-r bg-card">
+      <aside className="bg-card flex w-56 flex-col border-r">
         <div className="flex h-14 items-center border-b px-4">
           <span className="text-lg font-bold tracking-tight">Trivyal</span>
         </div>
@@ -60,14 +60,14 @@ export function PageLayout() {
         <div className="space-y-1 border-t p-2">
           <button
             onClick={toggleTheme}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
           >
             {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             {dark ? "Light mode" : "Dark mode"}
           </button>
           <button
             onClick={logout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
           >
             <LogOut className="h-4 w-4" />
             Log out

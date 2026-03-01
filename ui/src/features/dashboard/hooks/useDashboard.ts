@@ -19,7 +19,9 @@ export function useDashboard() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load dashboard");
+          setError(
+            err instanceof Error ? err.message : "Failed to load dashboard",
+          );
           setLoading(false);
         }
       });

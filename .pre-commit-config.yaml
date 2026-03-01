@@ -36,6 +36,21 @@ repos:
         args: [--directory, agent]
         files: ^agent/pyproject\.toml$
 
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint (ui)
+        entry: bash -c 'cd ui && files=(); for f in "$@"; do files+=("${f#ui/}"); done; npx eslint "${files[@]}"' --
+        language: system
+        files: ^ui/.*\.[tj]sx?$
+        types: [file]
+      - id: prettier
+        name: prettier (ui)
+        entry: bash -c 'cd ui && files=(); for f in "$@"; do files+=("${f#ui/}"); done; npx prettier --check "${files[@]}"' --
+        language: system
+        files: ^ui/
+        types_or: [javascript, jsx, ts, tsx, css, json, html]
+
   - repo: https://github.com/PyCQA/bandit
     rev: 1.9.4
     hooks:
