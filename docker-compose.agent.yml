@@ -2,6 +2,9 @@
 name: trivyal-agent
 services:
   trivyal-agent:
+    build:
+      context: .
+      dockerfile: agent/Dockerfile
     image: trivyal/agent:latest
     restart: unless-stopped
     network_mode: host

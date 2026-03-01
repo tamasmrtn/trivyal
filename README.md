@@ -91,34 +91,49 @@ When you add an agent in the UI, the hub generates a registration token and an E
 - Docker and Docker Compose on all hosts
 - The hub host must be reachable by all agent hosts over TCP (default port `8099`)
 
-### Deploy the Hub
+### 1. Deploy the Hub
 
-Copy `.env.example` to `.env`, set `TRIVYAL_SECRET_KEY` to a long random string, then:
+On the hub host, clone the repository and create your `.env`:
 
 ```bash
-docker compose -f docker-compose.hub.yml up -d
+cp .env.example .env
 ```
 
-Open `http://<hub-host>:8099` in your browser and log in with the admin credentials.
+Edit `.env` and set at minimum:
 
-### Add an Agent
+```env
+TRIVYAL_SECRET_KEY=<output of: openssl rand -hex 32>
+TRIVYAL_ADMIN_PASSWORD=<your admin password>
+```
+
+Build and start the hub:
+
+```bash
+docker compose -f docker-compose.hub.yml up --build -d
+```
+
+Open `http://<hub-host>:8099` in your browser and log in with your admin credentials.
+
+### 2. Add an Agent
 
 1. Go to **Agents** in the UI and click **Add Agent**.
-2. Copy the generated token and hub public key into your `.env` as `AGENT_TOKEN` and `AGENT_HUB_KEY`.
-3. On each remote agent host, create a `.env` and run with `docker-compose.agent.yml`:
+2. Copy the **Token** and **Hub Public Key** shown in the dialog.
+3. On the agent host, clone the repository and create a `.env`:
 
 ```env
 TRIVYAL_HUB_URL=ws://<hub-host>:8099
-TRIVYAL_TOKEN=<generated in UI>
-TRIVYAL_KEY=<hub public key from UI>
-TRIVYAL_SCAN_SCHEDULE=0 2 * * *
+AGENT_TOKEN=<token from UI>
+AGENT_HUB_KEY=<hub public key from UI>
+DOCKER_GID=<output of: stat -c '%g' /var/run/docker.sock>
 ```
+
+4. Build and start the agent:
 
 ```bash
-docker compose -f docker-compose.agent.yml up -d
+docker compose -f docker-compose.agent.yml up --build -d
 ```
 
-The agent will appear online in the hub UI within a few seconds. Scans run on the configured schedule, or you can trigger one immediately from the hub.
+The agent will appear online in the hub UI within a few seconds. Scans run on the configured schedule (default: nightly at 02:00), or you can trigger one immediately from the **Agents** page.
 
 ---
 

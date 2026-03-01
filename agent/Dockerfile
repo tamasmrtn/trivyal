@@ -25,7 +25,8 @@ FROM python:3.14-slim AS agent
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH="/app/.venv/bin:$PATH"
+    PATH="/app/.venv/bin:$PATH" \
+    TRIVY_CACHE_DIR=/app/data/trivy-cache
 
 # Copy the Trivy binary from its dedicated stage
 COPY --from=trivy-source /usr/local/bin/trivy /usr/local/bin/trivy
