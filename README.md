@@ -93,31 +93,7 @@ When you add an agent in the UI, the hub generates a registration token and an E
 
 ### Deploy the Hub
 
-Create a `docker-compose.hub.yml` on your hub server:
-
-```yaml
-services:
-  trivyal-hub:
-    image: trivyal/hub:latest
-    ports:
-      - "8099:8099"
-    volumes:
-      - ./data:/app/data
-    environment:
-      SECRET_KEY: "change-me"
-      DATA_DIR: /app/data
-
-  trivyal-agent:                    # optional: monitor the hub server itself
-    image: trivyal/agent:latest
-    network_mode: host
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./agent_data:/app/data
-    environment:
-      HUB_URL: "ws://localhost:8099"
-      TOKEN: "<generated in UI>"
-      KEY: "<hub public key from UI>"
-```
+Copy `.env.example` to `.env`, set `TRIVYAL_SECRET_KEY` to a long random string, then:
 
 ```bash
 docker compose -f docker-compose.hub.yml up -d
@@ -128,22 +104,14 @@ Open `http://<hub-host>:8099` in your browser and log in with the admin credenti
 ### Add an Agent
 
 1. Go to **Agents** in the UI and click **Add Agent**.
-2. Copy the generated `TOKEN` and `KEY` values shown.
-3. On each agent host, create a `docker-compose.agent.yml`:
+2. Copy the generated token and hub public key into your `.env` as `AGENT_TOKEN` and `AGENT_HUB_KEY`.
+3. On each remote agent host, create a `.env` and run with `docker-compose.agent.yml`:
 
-```yaml
-services:
-  trivyal-agent:
-    image: trivyal/agent:latest
-    network_mode: host
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./agent_data:/app/data
-    environment:
-      HUB_URL: "ws://<hub-host>:8099"
-      TOKEN: "<generated in UI>"
-      KEY: "<hub public key from UI>"
-      SCAN_SCHEDULE: "0 2 * * *"   # cron, default nightly at 2am
+```env
+TRIVYAL_HUB_URL=ws://<hub-host>:8099
+TRIVYAL_TOKEN=<generated in UI>
+TRIVYAL_KEY=<hub public key from UI>
+TRIVYAL_SCAN_SCHEDULE=0 2 * * *
 ```
 
 ```bash
@@ -151,6 +119,44 @@ docker compose -f docker-compose.agent.yml up -d
 ```
 
 The agent will appear online in the hub UI within a few seconds. Scans run on the configured schedule, or you can trigger one immediately from the hub.
+
+---
+
+## Environment Variables
+
+All variables use the `TRIVYAL_` prefix and are read from the environment or a `.env` file. Copy `.env.example` to get started.
+
+### Hub
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `TRIVYAL_SECRET_KEY` | **yes** | — | Long random string for signing tokens. Generate with `openssl rand -hex 32`. |
+| `TRIVYAL_ADMIN_PASSWORD` | no | `admin` | Password for the web UI admin login. Change this. |
+| `TRIVYAL_DATA_DIR` | no | `/app/data` | Directory where the SQLite database is stored. |
+| `TRIVYAL_DATABASE_URL` | no | derived | Full SQLite connection URL. Overrides `TRIVYAL_DATA_DIR` if set. |
+| `TRIVYAL_HOST` | no | `0.0.0.0` | Interface to bind. |
+| `TRIVYAL_PORT` | no | `8099` | Port to listen on. |
+| `TRIVYAL_STATIC_DIR` | no | `/app/static` | Directory containing the built React UI. Present automatically in Docker; not used in dev. |
+
+### Agent
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `TRIVYAL_HUB_URL` | **yes** | `ws://localhost:8099` | WebSocket URL of the hub. Use `wss://` in production. |
+| `TRIVYAL_TOKEN` | **yes** | — | Registration token generated in the hub UI (Agents → Add Agent). |
+| `TRIVYAL_KEY` | **yes** | — | Hub Ed25519 public key shown alongside the token in the hub UI. |
+| `TRIVYAL_SCAN_SCHEDULE` | no | `0 2 * * *` | Cron expression for scheduled scans (default: nightly at 02:00). |
+| `TRIVYAL_DATA_DIR` | no | `/app/data` | Directory for the local scan result cache. |
+| `TRIVYAL_HEARTBEAT_INTERVAL` | no | `30` | Seconds between heartbeat messages sent to the hub. |
+| `TRIVYAL_RECONNECT_DELAY` | no | `10` | Seconds to wait before reconnecting after a dropped connection. |
+
+### Docker Compose
+
+| Variable | Default | Description |
+|---|---|---|
+| `AGENT_TOKEN` | — | Passed as `TRIVYAL_TOKEN` to the co-located agent in `docker-compose.hub.yml`. |
+| `AGENT_HUB_KEY` | — | Passed as `TRIVYAL_KEY` to the co-located agent in `docker-compose.hub.yml`. |
+| `DOCKER_GID` | `999` | GID of the Docker socket on the host. Find yours with `stat -c '%g' /var/run/docker.sock`. |
 
 ---
 

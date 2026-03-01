@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     port: int = 8099
     admin_password: SecretStr = SecretStr("admin")
     database_url: str | None = None
+    static_dir: Path = Path("/app/static")
 
     @property
     def db_url(self) -> str:

@@ -1,0 +1,11 @@
+# agent/.dockerignore
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.pytest_cache/
+.ruff_cache/
+tests/
+data/
+*.json
+.env*

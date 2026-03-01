@@ -1,0 +1,49 @@
+# docker-compose.hub.yml
+name: trivyal-hub
+services:
+  trivyal-hub:
+    build:
+      context: .
+      dockerfile: hub/Dockerfile
+    image: trivyal/hub:latest
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    volumes:
+      - hub_data:/app/data
+    environment:
+      TRIVYAL_SECRET_KEY: "change-me-to-a-long-random-string"
+      TRIVYAL_DATA_DIR: /app/data
+      # TRIVYAL_ADMIN_PASSWORD: "changeme"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8099/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Optional: run an agent on the hub host itself to monitor it too
+  # trivyal-agent:
+  #   build:
+  #     context: .
+  #     dockerfile: agent/Dockerfile
+  #   image: trivyal/agent:latest
+  #   restart: unless-stopped
+  #   network_mode: host          # gives the agent access to other local containers' metadata
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+  #     - agent_data:/app/data
+  #   group_add:
+  #     - "${DOCKER_GID:-999}"    # match host Docker socket GID; set DOCKER_GID in .env
+  #   environment:
+  #     TRIVYAL_HUB_URL: "ws://localhost:8099"
+  #     TRIVYAL_TOKEN: "${AGENT_TOKEN}"       # generated in the Trivyal UI
+  #     TRIVYAL_KEY: "${AGENT_HUB_KEY}"       # hub public key shown in the Trivyal UI
+  #     TRIVYAL_SCAN_SCHEDULE: "0 2 * * *"   # cron — default nightly at 02:00
+  #   depends_on:
+  #     trivyal-hub:
+  #       condition: service_healthy
+
+volumes:
+  hub_data:
+  # agent_data:
