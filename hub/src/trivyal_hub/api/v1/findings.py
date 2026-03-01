@@ -112,6 +112,28 @@ async def create_acceptance(
     return RiskAcceptanceResponse.model_validate(acceptance, from_attributes=True)
 
 
+@router.get("/{finding_id}/acceptances", response_model=list[RiskAcceptanceResponse])
+async def list_acceptances(
+    finding_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    finding = await session.get(Finding, finding_id)
+    if not finding:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finding not found")
+    results = (
+        (
+            await session.execute(
+                select(RiskAcceptance)
+                .where(RiskAcceptance.finding_id == finding_id)
+                .order_by(RiskAcceptance.created_at.desc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return [RiskAcceptanceResponse.model_validate(a, from_attributes=True) for a in results]
+
+
 @router.delete(
     "/{finding_id}/acceptances/{acceptance_id}",
     status_code=status.HTTP_204_NO_CONTENT,

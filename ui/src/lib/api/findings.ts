@@ -6,6 +6,16 @@ import type {
   Severity,
 } from "./types";
 
+export function fetchFinding(id: string) {
+  return api<FindingResponse>(`/api/v1/findings/${id}`);
+}
+
+export function fetchAcceptances(findingId: string) {
+  return api<RiskAcceptanceResponse[]>(
+    `/api/v1/findings/${findingId}/acceptances`,
+  );
+}
+
 export interface RiskAcceptanceResponse {
   id: string;
   finding_id: string;

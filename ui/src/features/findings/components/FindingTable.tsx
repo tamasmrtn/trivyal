@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import {
   Table,
   TableBody,
@@ -49,7 +50,11 @@ export function FindingTable({ findings, onAccepted }: FindingTableProps) {
       <TableBody>
         {findings.map((finding) => (
           <TableRow key={finding.id}>
-            <TableCell className="font-medium">{finding.cve_id}</TableCell>
+            <TableCell className="font-medium">
+              <Link to={`/findings/${finding.id}`} className="hover:underline">
+                {finding.cve_id}
+              </Link>
+            </TableCell>
             <TableCell>{finding.package_name}</TableCell>
             <TableCell>{finding.installed_version}</TableCell>
             <TableCell>{finding.fixed_version ?? "-"}</TableCell>

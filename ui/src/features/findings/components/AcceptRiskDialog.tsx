@@ -17,12 +17,14 @@ interface AcceptRiskDialogProps {
   findingId: string;
   cveId: string;
   onAccepted: () => void;
+  trigger?: React.ReactNode;
 }
 
 export function AcceptRiskDialog({
   findingId,
   cveId,
   onAccepted,
+  trigger,
 }: AcceptRiskDialogProps) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -64,13 +66,15 @@ export function AcceptRiskDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`Accept risk for ${cveId}`}
-        >
-          <ShieldCheck className="h-4 w-4" />
-        </Button>
+        {trigger ?? (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Accept risk for ${cveId}`}
+          >
+            <ShieldCheck className="h-4 w-4" />
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit}>

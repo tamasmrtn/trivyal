@@ -80,6 +80,43 @@ class TestUpdateFinding:
         assert response.json()["status"] == "false_positive"
 
 
+class TestListAcceptances:
+    async def test_returns_empty_list(self, client, auth_header, session):
+        create_resp = await client.post("/api/v1/agents", json={"name": "s1"}, headers=auth_header)
+        agent_id = create_resp.json()["id"]
+        finding = await _seed_finding(session, agent_id)
+
+        resp = await client.get(f"/api/v1/findings/{finding.id}/acceptances", headers=auth_header)
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    async def test_returns_acceptances_after_create(self, client, auth_header, session):
+        create_resp = await client.post("/api/v1/agents", json={"name": "s1"}, headers=auth_header)
+        agent_id = create_resp.json()["id"]
+        finding = await _seed_finding(session, agent_id)
+
+        await client.post(
+            f"/api/v1/findings/{finding.id}/acceptances",
+            json={"reason": "Not exploitable"},
+            headers=auth_header,
+        )
+
+        resp = await client.get(f"/api/v1/findings/{finding.id}/acceptances", headers=auth_header)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["reason"] == "Not exploitable"
+        assert data[0]["finding_id"] == finding.id
+
+    async def test_returns_404_for_unknown_finding(self, client, auth_header):
+        resp = await client.get("/api/v1/findings/bad-id/acceptances", headers=auth_header)
+        assert resp.status_code == 404
+
+    async def test_requires_auth(self, client):
+        resp = await client.get("/api/v1/findings/any-id/acceptances")
+        assert resp.status_code in (401, 403)
+
+
 class TestRiskAcceptance:
     async def test_create_and_revoke(self, client, auth_header, session):
         create_resp = await client.post("/api/v1/agents", json={"name": "s1"}, headers=auth_header)

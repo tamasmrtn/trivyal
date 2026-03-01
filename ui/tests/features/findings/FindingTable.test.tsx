@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { FindingTable } from "@/features/findings/components/FindingTable";
 import type { FindingResponse } from "@/lib/api/types";
 
@@ -33,34 +34,46 @@ const mockFindings: FindingResponse[] = [
   },
 ];
 
+function renderTable(findings = mockFindings) {
+  return render(
+    <MemoryRouter>
+      <FindingTable findings={findings} onAccepted={vi.fn()} />
+    </MemoryRouter>,
+  );
+}
+
 describe("FindingTable", () => {
   it("renders empty state when no findings", () => {
-    render(<FindingTable findings={[]} onAccepted={vi.fn()} />);
+    renderTable([]);
     expect(
       screen.getByText(/no findings match the current filters/i),
     ).toBeInTheDocument();
   });
 
-  it("renders CVE IDs", () => {
-    render(<FindingTable findings={mockFindings} onAccepted={vi.fn()} />);
-    expect(screen.getByText("CVE-2026-1234")).toBeInTheDocument();
-    expect(screen.getByText("CVE-2026-5678")).toBeInTheDocument();
+  it("renders CVE IDs as links to detail page", () => {
+    renderTable();
+    const link1 = screen.getByRole("link", { name: "CVE-2026-1234" });
+    expect(link1).toBeInTheDocument();
+    expect(link1).toHaveAttribute("href", "/findings/f1");
+
+    const link2 = screen.getByRole("link", { name: "CVE-2026-5678" });
+    expect(link2).toHaveAttribute("href", "/findings/f2");
   });
 
   it("renders package names", () => {
-    render(<FindingTable findings={mockFindings} onAccepted={vi.fn()} />);
+    renderTable();
     expect(screen.getByText("openssl")).toBeInTheDocument();
     expect(screen.getByText("curl")).toBeInTheDocument();
   });
 
   it("renders severity badges", () => {
-    render(<FindingTable findings={mockFindings} onAccepted={vi.fn()} />);
+    renderTable();
     expect(screen.getByText("CRITICAL")).toBeInTheDocument();
     expect(screen.getByText("LOW")).toBeInTheDocument();
   });
 
   it("renders status badges", () => {
-    render(<FindingTable findings={mockFindings} onAccepted={vi.fn()} />);
+    renderTable();
     expect(screen.getByText("Active")).toBeInTheDocument();
     // "Fixed" appears both as table header and status badge
     const fixedElements = screen.getAllByText("Fixed");
@@ -68,12 +81,12 @@ describe("FindingTable", () => {
   });
 
   it("renders dash when fixed_version is null", () => {
-    render(<FindingTable findings={mockFindings} onAccepted={vi.fn()} />);
+    renderTable();
     expect(screen.getByText("-")).toBeInTheDocument();
   });
 
   it("shows accept risk button only for active findings", () => {
-    render(<FindingTable findings={mockFindings} onAccepted={vi.fn()} />);
+    renderTable();
     expect(
       screen.getByLabelText("Accept risk for CVE-2026-1234"),
     ).toBeInTheDocument();

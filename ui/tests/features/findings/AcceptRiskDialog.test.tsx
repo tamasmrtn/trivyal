@@ -12,7 +12,7 @@ describe("AcceptRiskDialog", () => {
     vi.clearAllMocks();
   });
 
-  it("renders trigger button with correct aria-label", () => {
+  it("renders default icon trigger with correct aria-label", () => {
     render(
       <AcceptRiskDialog
         findingId="f1"
@@ -23,6 +23,28 @@ describe("AcceptRiskDialog", () => {
     expect(
       screen.getByLabelText("Accept risk for CVE-2026-1234"),
     ).toBeInTheDocument();
+  });
+
+  it("renders custom trigger when provided", async () => {
+    const user = userEvent.setup();
+    render(
+      <AcceptRiskDialog
+        findingId="f1"
+        cveId="CVE-2026-1234"
+        onAccepted={vi.fn()}
+        trigger={<button>Custom Trigger</button>}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Custom Trigger" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Accept risk for CVE-2026-1234"),
+    ).not.toBeInTheDocument();
+
+    // clicking the custom trigger still opens the dialog
+    await user.click(screen.getByRole("button", { name: "Custom Trigger" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("opens dialog when trigger is clicked", async () => {
