@@ -12,7 +12,7 @@ security = HTTPBearer()
 async def require_auth(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> str:
-    expected = generate_admin_token(settings.secret_key)
+    expected = generate_admin_token(settings.secret_key.get_secret_value())
     if credentials.credentials != expected:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -46,5 +46,5 @@ async def client(engine):
 
 @pytest.fixture
 def auth_header():
-    token = generate_admin_token(settings.secret_key)
+    token = generate_admin_token(settings.secret_key.get_secret_value())
     return {"Authorization": f"Bearer {token}"}

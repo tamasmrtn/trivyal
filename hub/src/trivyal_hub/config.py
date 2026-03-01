@@ -2,17 +2,18 @@
 
 from pathlib import Path
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     model_config = {"env_prefix": "TRIVYAL_"}
 
-    secret_key: str = "change-me"
+    secret_key: SecretStr = SecretStr("change-me")
     data_dir: Path = Path("/app/data")
     host: str = "0.0.0.0"  # noqa: S104  # nosec B104 — bind all interfaces for Docker
     port: int = 8099
-    admin_password: str = "admin"
+    admin_password: SecretStr = SecretStr("admin")
     database_url: str | None = None
 
     @property

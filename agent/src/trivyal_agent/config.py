@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings
 
 
@@ -9,8 +10,8 @@ class Settings(BaseSettings):
     model_config = {"env_prefix": "TRIVYAL_"}
 
     hub_url: str = "ws://localhost:8099"
-    token: str = ""
-    key: str = ""  # Hub Ed25519 public key (base64-encoded)
+    token: SecretStr = SecretStr("")
+    key: SecretStr = SecretStr("")  # Hub Ed25519 public key (base64-encoded)
     scan_schedule: str = "0 2 * * *"  # cron expression, default 2am nightly
     data_dir: Path = Path("/app/data")
     agent_version: str = "0.1.0"

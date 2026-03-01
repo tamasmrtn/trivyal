@@ -17,11 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 async def _main() -> None:
-    if not settings.token:
+    if not settings.token.get_secret_value():
         logger.error("TRIVYAL_TOKEN is not set — cannot connect to hub")
         sys.exit(1)
 
-    if not settings.key:
+    if not settings.key.get_secret_value():
         logger.error("TRIVYAL_KEY is not set — cannot verify hub identity")
         sys.exit(1)
 

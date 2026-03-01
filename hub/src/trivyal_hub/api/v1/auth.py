@@ -21,9 +21,9 @@ class TokenResponse(BaseModel):
 
 @router.post("/token", response_model=TokenResponse)
 async def login(body: TokenRequest):
-    if body.username != "admin" or body.password != settings.admin_password:
+    if body.username != "admin" or body.password != settings.admin_password.get_secret_value():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
         )
-    return TokenResponse(access_token=generate_admin_token(settings.secret_key))
+    return TokenResponse(access_token=generate_admin_token(settings.secret_key.get_secret_value()))

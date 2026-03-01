@@ -51,7 +51,7 @@ class AgentClient:
 
     async def _connect_and_run(self) -> None:
         ws_url = f"{self._settings.hub_url}/ws/agent"
-        headers = {"Authorization": f"Bearer {self._settings.token}"}
+        headers = {"Authorization": f"Bearer {self._settings.token.get_secret_value()}"}
         logger.info("Connecting to hub at %s", ws_url)
 
         async with ws_client.connect(ws_url, additional_headers=headers) as ws:
@@ -72,7 +72,7 @@ class AgentClient:
             raise AuthError(f"Expected challenge message, got: {data.get('type')!r}")
 
         if not verify_hub_signature(
-            self._settings.key,
+            self._settings.key.get_secret_value(),
             data["signature"],
             data["challenge"],
         ):
