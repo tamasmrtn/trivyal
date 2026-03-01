@@ -1,10 +1,10 @@
-.PHONY: init init-hub init-agent init-ui init-hooks \
-        test test-hub test-agent test-ui \
+.PHONY: init init-hub init-agent init-ui init-hooks init-integration \
+        test test-hub test-agent test-ui test-integration \
         dev-hub dev-agent dev-ui lint
 
 # ── Init ──────────────────────────────────────────────────────────────────────
 
-init: init-hub init-agent init-ui init-hooks
+init: init-hub init-agent init-ui init-hooks init-integration
 
 init-hub:
 	cd hub && uv sync
@@ -18,6 +18,9 @@ init-ui:
 init-hooks:
 	uv tool install pre-commit
 	pre-commit install
+
+init-integration:
+	cd integration && uv sync
 
 # ── Lint ──────────────────────────────────────────────────────────────────────
 
@@ -36,6 +39,13 @@ test-agent:
 
 test-ui:
 	cd ui && npm run test:run
+
+test-integration:
+	cd integration && docker compose -f docker-compose.test.yml up --build --wait -d
+	cd integration && uv run pytest tests/ -v --tb=short; \
+	  EXIT=$$?; \
+	  docker compose -f docker-compose.test.yml down -v; \
+	  exit $$EXIT
 
 # ── Dev ───────────────────────────────────────────────────────────────────────
 

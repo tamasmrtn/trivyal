@@ -1,0 +1,23 @@
+# docker-compose.test.yml — spun up by pytest-docker for integration tests.
+# Context is the project root (..); tests run from integration/.
+name: trivyal-integration
+
+services:
+  hub:
+    build:
+      context: ..
+      dockerfile: hub/Dockerfile
+    ports:
+      - "18099:8099"
+    environment:
+      TRIVYAL_SECRET_KEY: "integration-test-secret-key-32x!"
+      TRIVYAL_ADMIN_PASSWORD: "testpassword"
+      TRIVYAL_DATA_DIR: /tmp/trivyal-test
+    tmpfs:
+      - /tmp/trivyal-test    # ephemeral SQLite DB — wiped on every compose run
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8099/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 18
+      start_period: 20s

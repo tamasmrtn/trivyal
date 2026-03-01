@@ -213,3 +213,69 @@ Focus on behaviour, not implementation details.
 | UI components | renders correctly, responds to user interaction | CSS details, third-party component internals |
 
 Keep test files short. If a test class grows beyond ~10 methods, split it into narrower classes.
+
+---
+
+## Integration tests
+
+Integration tests start the real hub in Docker and test every feature end-to-end, including the
+hub–agent WebSocket protocol. They live in `integration/` — a separate uv project with its own
+dependencies.
+
+**Prerequisites:** Docker Engine + Docker Compose v2.
+
+```bash
+# Install integration test dependencies
+make init-integration
+
+# Run the full integration suite (builds hub image, starts it, runs tests, tears down)
+make test-integration
+```
+
+### Architecture
+
+```
+integration/
+├── pyproject.toml           # pytest, pytest-docker, httpx, websockets, pynacl
+├── docker-compose.test.yml  # Hub on port 18099 with tmpfs SQLite (clean on every run)
+├── conftest.py              # pytest-docker fixtures, auth, hub client, agent helpers
+├── helpers/
+│   ├── agent_sim.py         # SimulatedAgent — speaks hub WS protocol without real Trivy
+│   └── trivy_fixtures.py    # Canned Trivy JSON payloads (deterministic scan results)
+└── tests/
+    ├── test_auth.py          # Login, bad creds, auth enforcement on all endpoints
+    ├── test_agents.py        # Register, list, filter, get, delete agents
+    ├── test_websocket.py     # Full handshake, online/offline status, heartbeat ack
+    ├── test_scan_trigger.py  # Hub→agent→hub round-trip, result ingestion, status lifecycle
+    ├── test_findings.py      # List, filter (severity/status/CVE/package), get, update status
+    ├── test_risk_acceptance.py  # Create, list, revoke; finding status side-effects
+    ├── test_scan_history.py  # Per-agent scans, global scans, scan detail with trivy_raw
+    ├── test_dashboard.py     # Summary counts by severity and agent status
+    └── test_settings.py      # GET/PATCH settings, partial update, persistence
+```
+
+### Key fixtures
+
+| Fixture | Scope | Purpose |
+|---|---|---|
+| `hub_base_url` | session | Waits for hub health check then returns `http://localhost:18099` |
+| `auth_token` | session | Derives the admin token from the known test secret key (no HTTP needed) |
+| `hub` | function | Authenticated `httpx.AsyncClient` |
+| `hub_anon` | function | Unauthenticated client (for testing 401 enforcement) |
+| `registered_agent` | function | Registers a uniquely-named agent; deletes it (cascades all data) on teardown |
+| `connected_agent` | function | `SimulatedAgent` that has completed the WebSocket handshake |
+
+### SimulatedAgent
+
+`SimulatedAgent` connects to the hub via WebSocket and completes the full handshake (verifies the
+Ed25519 challenge signature, sends fingerprint + host metadata). Tests can then call:
+
+- `handle_scan_trigger_and_respond(scan_data)` — waits for `scan_trigger`, replies with `scan_result`
+- `recv_heartbeat_ack()` — sends heartbeat and asserts the hub replies with `heartbeat_ack`
+- `close()` — closes the connection (hub marks agent offline)
+
+### Test isolation
+
+Each test uses a uniquely-named agent via `registered_agent`. Deleting the agent cascades through
+containers → scan_results → findings, so teardown is always clean. Tests that change settings
+reset them within the test body.
