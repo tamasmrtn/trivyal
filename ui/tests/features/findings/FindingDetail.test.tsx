@@ -28,7 +28,9 @@ const mockFinding: FindingResponse = {
   installed_version: "1.1.1",
   fixed_version: "1.1.2",
   severity: "CRITICAL",
+  description: "A buffer overflow in openssl affects TLS connections.",
   status: "active",
+  container_name: "nginx:latest",
   first_seen: "2026-02-01T00:00:00Z",
   last_seen: "2026-03-01T00:00:00Z",
 };
