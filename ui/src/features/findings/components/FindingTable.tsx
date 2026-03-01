@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -15,13 +16,66 @@ import type { FindingResponse } from "@/lib/api/types";
 interface FindingTableProps {
   findings: FindingResponse[];
   onAccepted: () => void;
+  sortBy: string;
+  sortDir: "asc" | "desc";
+  onSort: (column: string) => void;
 }
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString();
 }
 
-export function FindingTable({ findings, onAccepted }: FindingTableProps) {
+function SortIcon({
+  column,
+  sortBy,
+  sortDir,
+}: {
+  column: string;
+  sortBy: string;
+  sortDir: "asc" | "desc";
+}) {
+  if (sortBy !== column)
+    return <ChevronsUpDown className="ml-1 inline h-3 w-3 opacity-40" />;
+  return sortDir === "asc" ? (
+    <ChevronUp className="ml-1 inline h-3 w-3" />
+  ) : (
+    <ChevronDown className="ml-1 inline h-3 w-3" />
+  );
+}
+
+function SortableHead({
+  column,
+  label,
+  sortBy,
+  sortDir,
+  onSort,
+}: {
+  column: string;
+  label: string;
+  sortBy: string;
+  sortDir: "asc" | "desc";
+  onSort: (col: string) => void;
+}) {
+  return (
+    <TableHead>
+      <button
+        onClick={() => onSort(column)}
+        className="hover:text-foreground flex items-center whitespace-nowrap"
+      >
+        {label}
+        <SortIcon column={column} sortBy={sortBy} sortDir={sortDir} />
+      </button>
+    </TableHead>
+  );
+}
+
+export function FindingTable({
+  findings,
+  onAccepted,
+  sortBy,
+  sortDir,
+  onSort,
+}: FindingTableProps) {
   if (findings.length === 0) {
     return (
       <div className="flex h-32 items-center justify-center rounded-lg border border-dashed">
@@ -36,14 +90,57 @@ export function FindingTable({ findings, onAccepted }: FindingTableProps) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>CVE</TableHead>
-          <TableHead>Package</TableHead>
+          <SortableHead
+            column="cve_id"
+            label="CVE"
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={onSort}
+          />
+          <SortableHead
+            column="package_name"
+            label="Package"
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={onSort}
+          />
           <TableHead>Installed</TableHead>
           <TableHead>Fixed</TableHead>
-          <TableHead>Severity</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>First Seen</TableHead>
-          <TableHead>Last Seen</TableHead>
+          <SortableHead
+            column="container"
+            label="Container"
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={onSort}
+          />
+          <SortableHead
+            column="severity"
+            label="Severity"
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={onSort}
+          />
+          <SortableHead
+            column="status"
+            label="Status"
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={onSort}
+          />
+          <SortableHead
+            column="first_seen"
+            label="First Seen"
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={onSort}
+          />
+          <SortableHead
+            column="last_seen"
+            label="Last Seen"
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={onSort}
+          />
           <TableHead className="w-[60px]" />
         </TableRow>
       </TableHeader>
@@ -64,6 +161,9 @@ export function FindingTable({ findings, onAccepted }: FindingTableProps) {
             </TableCell>
             <TableCell className="font-mono text-xs">
               {finding.fixed_version ?? "—"}
+            </TableCell>
+            <TableCell className="font-mono text-xs">
+              {finding.container_name ?? "—"}
             </TableCell>
             <TableCell>
               <SeverityBadge severity={finding.severity} />

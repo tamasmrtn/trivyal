@@ -30,6 +30,9 @@ export function fetchFindings(params?: {
   status?: FindingStatus;
   cve_id?: string;
   package?: string;
+  container_id?: string;
+  sort_by?: string;
+  sort_dir?: "asc" | "desc";
   page?: number;
   page_size?: number;
 }) {
@@ -38,6 +41,9 @@ export function fetchFindings(params?: {
   if (params?.status) search.set("status", params.status);
   if (params?.cve_id) search.set("cve_id", params.cve_id);
   if (params?.package) search.set("package", params.package);
+  if (params?.container_id) search.set("container_id", params.container_id);
+  if (params?.sort_by) search.set("sort_by", params.sort_by);
+  if (params?.sort_dir) search.set("sort_dir", params.sort_dir);
   if (params?.page) search.set("page", String(params.page));
   if (params?.page_size) search.set("page_size", String(params.page_size));
 

@@ -15,7 +15,9 @@ class FindingResponse(BaseModel):
     installed_version: str
     fixed_version: str | None
     severity: Severity
+    description: str | None
     status: FindingStatus
+    container_name: str | None
     first_seen: datetime
     last_seen: datetime
 

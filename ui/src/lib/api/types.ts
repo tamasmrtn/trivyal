@@ -56,7 +56,9 @@ export interface FindingResponse {
   installed_version: string;
   fixed_version: string | null;
   severity: Severity;
+  description: string | null;
   status: FindingStatus;
+  container_name: string | null;
   first_seen: string;
   last_seen: string;
 }

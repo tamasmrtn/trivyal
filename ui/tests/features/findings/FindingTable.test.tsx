@@ -16,7 +16,9 @@ const mockFindings: FindingResponse[] = [
     installed_version: "1.1.1",
     fixed_version: "1.1.2",
     severity: "CRITICAL",
+    description: "A buffer overflow vulnerability in openssl.",
     status: "active",
+    container_name: "nginx:latest",
     first_seen: "2026-02-01T00:00:00Z",
     last_seen: "2026-03-01T00:00:00Z",
   },
@@ -28,7 +30,9 @@ const mockFindings: FindingResponse[] = [
     installed_version: "7.80.0",
     fixed_version: null,
     severity: "LOW",
+    description: null,
     status: "fixed",
+    container_name: null,
     first_seen: "2026-02-15T00:00:00Z",
     last_seen: "2026-02-20T00:00:00Z",
   },
@@ -37,7 +41,13 @@ const mockFindings: FindingResponse[] = [
 function renderTable(findings = mockFindings) {
   return render(
     <MemoryRouter>
-      <FindingTable findings={findings} onAccepted={vi.fn()} />
+      <FindingTable
+        findings={findings}
+        onAccepted={vi.fn()}
+        sortBy="first_seen"
+        sortDir="desc"
+        onSort={vi.fn()}
+      />
     </MemoryRouter>,
   );
 }
@@ -80,9 +90,10 @@ describe("FindingTable", () => {
     expect(fixedElements.length).toBe(2);
   });
 
-  it("renders dash when fixed_version is null", () => {
+  it("renders dash when fixed_version or container_name is null", () => {
     renderTable();
-    expect(screen.getByText("—")).toBeInTheDocument();
+    // Both fixed_version=null and container_name=null render "—"
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
   });
 
   it("shows accept risk button only for active findings", () => {

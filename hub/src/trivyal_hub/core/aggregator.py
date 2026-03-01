@@ -56,6 +56,7 @@ async def process_scan_result(
                     installed_version=vuln.get("InstalledVersion", "unknown"),
                     fixed_version=vuln.get("FixedVersion"),
                     severity=Severity(sev),
+                    description=vuln.get("Description") or None,
                     first_seen=now,
                     last_seen=now,
                 )
@@ -93,6 +94,8 @@ async def process_scan_result(
         if existing:
             existing.last_seen = now
             existing.scan_result_id = scan_result.id
+            if finding.description:
+                existing.description = finding.description
             session.add(existing)
         else:
             session.add(finding)

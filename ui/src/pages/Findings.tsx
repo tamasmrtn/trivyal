@@ -6,12 +6,16 @@ export function Findings() {
   const [severity, setSeverity] = useState<Severity | undefined>();
   const [status, setStatus] = useState<FindingStatus | undefined>();
   const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState("first_seen");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const { data, total, loading, error, refetch } = useFindings({
     severity,
     status,
     page,
     page_size: 50,
+    sort_by: sortBy,
+    sort_dir: sortDir,
   });
 
   const totalPages = Math.max(1, Math.ceil(total / 50));
@@ -23,6 +27,16 @@ export function Findings() {
 
   function handleStatusChange(value: FindingStatus | undefined) {
     setStatus(value);
+    setPage(1);
+  }
+
+  function handleSort(column: string) {
+    if (sortBy === column) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(column);
+      setSortDir("desc");
+    }
     setPage(1);
   }
 
@@ -54,7 +68,13 @@ export function Findings() {
         />
       </div>
 
-      <FindingTable findings={data} onAccepted={refetch} />
+      <FindingTable
+        findings={data}
+        onAccepted={refetch}
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onSort={handleSort}
+      />
 
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between">

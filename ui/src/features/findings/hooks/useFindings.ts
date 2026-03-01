@@ -7,6 +7,9 @@ interface UseFindingsOptions {
   status?: FindingStatus;
   cve_id?: string;
   package?: string;
+  container_id?: string;
+  sort_by?: string;
+  sort_dir?: "asc" | "desc";
   page?: number;
   page_size?: number;
 }
@@ -16,6 +19,9 @@ export function useFindings(options?: UseFindingsOptions) {
   const status = options?.status;
   const cveId = options?.cve_id;
   const pkg = options?.package;
+  const containerId = options?.container_id;
+  const sortBy = options?.sort_by;
+  const sortDir = options?.sort_dir;
   const page = options?.page;
   const pageSize = options?.page_size;
 
@@ -33,6 +39,9 @@ export function useFindings(options?: UseFindingsOptions) {
       status,
       cve_id: cveId,
       package: pkg,
+      container_id: containerId,
+      sort_by: sortBy,
+      sort_dir: sortDir,
       page,
       page_size: pageSize,
     })
@@ -56,7 +65,17 @@ export function useFindings(options?: UseFindingsOptions) {
     return () => {
       cancelled = true;
     };
-  }, [severity, status, cveId, pkg, page, pageSize]);
+  }, [
+    severity,
+    status,
+    cveId,
+    pkg,
+    containerId,
+    sortBy,
+    sortDir,
+    page,
+    pageSize,
+  ]);
 
   useEffect(() => {
     return load();

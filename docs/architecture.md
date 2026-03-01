@@ -224,6 +224,7 @@ Finding
 ├── installed_version
 ├── fixed_version
 ├── severity
+├── description        # CVE description sourced from Trivy output (NVD/OSV)
 ├── status (active | fixed | accepted | false_positive)
 ├── first_seen
 └── last_seen
@@ -273,7 +274,7 @@ GET    /api/v1/scans                       # scan history across all agents (pag
 GET    /api/v1/scans/{id}                  # scan detail + full Trivy output
 
 # Findings
-GET    /api/v1/findings                    # all findings (filterable: ?severity=&status=&agent_id=&cve_id=&package=)
+GET    /api/v1/findings                    # all findings (filterable: ?severity=&status=&agent_id=&cve_id=&package=&container_id=; sortable: ?sort_by=severity|status|cve_id|package_name|container|first_seen|last_seen&sort_dir=asc|desc)
 GET    /api/v1/findings/{id}               # single finding detail
 PATCH  /api/v1/findings/{id}               # update status (accept | false_positive | reopen)
 
@@ -492,7 +493,7 @@ services:
 |---|---|
 | **Dashboard** | Summary cards (total CVEs by severity), agent status grid, recent findings feed |
 | **Agents** | List of registered agents, status, last scan time, add/remove agent, copy deploy snippet |
-| **Findings** | Full findings table with filters (severity, status, agent, CVE ID, package), bulk accept |
+| **Findings** | Full findings table with filters (severity, status, agent, CVE ID, package) and sortable columns (severity, status, CVE ID, package, container, first seen, last seen); includes a **Container** column showing the originating container; bulk accept |
 | **Scan History** | Timeline of scans per agent/container, diff view (new / fixed per scan) |
-| **Finding Detail** | Single CVE detail — affected containers, fix version, NVD link, risk acceptance form |
+| **Finding Detail** | Single CVE detail — CVE description (sourced from Trivy/NVD), affected containers, fix version, NVD link, risk acceptance form |
 | **Settings** | Notification webhooks, scan schedule override, theme toggle |

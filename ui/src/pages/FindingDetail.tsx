@@ -104,6 +104,14 @@ export function FindingDetail() {
           <h2 className="text-sm font-semibold">Details</h2>
         </div>
         <dl className="divide-y text-sm">
+          {finding.description && (
+            <div className="flex px-4 py-3">
+              <dt className="text-muted-foreground w-40 shrink-0">
+                Description
+              </dt>
+              <dd className="leading-relaxed">{finding.description}</dd>
+            </div>
+          )}
           <div className="flex px-4 py-3">
             <dt className="text-muted-foreground w-40 shrink-0">Package</dt>
             <dd className="font-medium">{finding.package_name}</dd>
@@ -128,6 +136,12 @@ export function FindingDetail() {
             <dt className="text-muted-foreground w-40 shrink-0">Last seen</dt>
             <dd>{formatDate(finding.last_seen)}</dd>
           </div>
+          {finding.container_name && (
+            <div className="flex px-4 py-3">
+              <dt className="text-muted-foreground w-40 shrink-0">Container</dt>
+              <dd className="font-mono text-xs">{finding.container_name}</dd>
+            </div>
+          )}
           <div className="flex px-4 py-3">
             <dt className="text-muted-foreground w-40 shrink-0">Scan result</dt>
             <dd className="font-mono text-xs">{finding.scan_result_id}</dd>

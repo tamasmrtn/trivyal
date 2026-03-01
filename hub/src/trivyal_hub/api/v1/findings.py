@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
 from trivyal_hub.api.deps import require_auth
-from trivyal_hub.db.models import Finding, FindingStatus, RiskAcceptance, Severity
+from trivyal_hub.db.models import Container, Finding, FindingStatus, RiskAcceptance, ScanResult, Severity
 from trivyal_hub.db.session import get_session
 from trivyal_hub.schemas.common import PaginatedResponse
 from trivyal_hub.schemas.findings import (
@@ -17,20 +17,74 @@ from trivyal_hub.schemas.findings import (
 
 router = APIRouter(prefix="/findings", tags=["findings"], dependencies=[Depends(require_auth)])
 
+_SORT_COLUMNS: dict = {
+    "severity": Finding.severity,
+    "status": Finding.status,
+    "cve_id": Finding.cve_id,
+    "package_name": Finding.package_name,
+    "first_seen": Finding.first_seen,
+    "last_seen": Finding.last_seen,
+    "container": Container.image_name,
+}
+
+
+def _to_response(finding: Finding, container_name: str | None) -> FindingResponse:
+    return FindingResponse(
+        id=finding.id,
+        scan_result_id=finding.scan_result_id,
+        cve_id=finding.cve_id,
+        package_name=finding.package_name,
+        installed_version=finding.installed_version,
+        fixed_version=finding.fixed_version,
+        severity=finding.severity,
+        description=finding.description,
+        status=finding.status,
+        container_name=container_name,
+        first_seen=finding.first_seen,
+        last_seen=finding.last_seen,
+    )
+
+
+async def _fetch_one(session: AsyncSession, finding_id: str):
+    """Fetch a single finding joined with its container image name."""
+    return (
+        await session.execute(
+            select(Finding, Container.image_name)
+            .join(ScanResult, Finding.scan_result_id == ScanResult.id)
+            .join(Container, ScanResult.container_id == Container.id)
+            .where(Finding.id == finding_id)
+        )
+    ).first()
+
 
 @router.get("", response_model=PaginatedResponse[FindingResponse])
 async def list_findings(
     severity: Severity | None = None,
     finding_status: FindingStatus | None = Query(None, alias="status"),
     agent_id: str | None = None,
+    container_id: str | None = None,
     cve_id: str | None = None,
     package: str | None = None,
+    sort_by: str = Query(
+        "first_seen",
+        pattern="^(severity|status|cve_id|package_name|first_seen|last_seen|container)$",
+    ),
+    sort_dir: str = Query("desc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     session: AsyncSession = Depends(get_session),
 ):
-    query = select(Finding)
-    count_q = select(func.count()).select_from(Finding)
+    query = (
+        select(Finding, Container.image_name)
+        .join(ScanResult, Finding.scan_result_id == ScanResult.id)
+        .join(Container, ScanResult.container_id == Container.id)
+    )
+    count_q = (
+        select(func.count())
+        .select_from(Finding)
+        .join(ScanResult, Finding.scan_result_id == ScanResult.id)
+        .join(Container, ScanResult.container_id == Container.id)
+    )
 
     if severity:
         query = query.where(Finding.severity == severity)
@@ -44,12 +98,21 @@ async def list_findings(
     if package:
         query = query.where(Finding.package_name == package)
         count_q = count_q.where(Finding.package_name == package)
+    if agent_id:
+        query = query.where(ScanResult.agent_id == agent_id)
+        count_q = count_q.where(ScanResult.agent_id == agent_id)
+    if container_id:
+        query = query.where(ScanResult.container_id == container_id)
+        count_q = count_q.where(ScanResult.container_id == container_id)
+
+    sort_col = _SORT_COLUMNS.get(sort_by, Finding.first_seen)
+    query = query.order_by(sort_col.asc() if sort_dir == "asc" else sort_col.desc())
 
     total = (await session.execute(count_q)).scalar_one()
-    results = (await session.execute(query.offset((page - 1) * page_size).limit(page_size))).scalars().all()
+    rows = (await session.execute(query.offset((page - 1) * page_size).limit(page_size))).all()
 
     return PaginatedResponse(
-        data=[FindingResponse.model_validate(f, from_attributes=True) for f in results],
+        data=[_to_response(finding, container_name) for finding, container_name in rows],
         total=total,
         page=page,
         page_size=page_size,
@@ -61,10 +124,11 @@ async def get_finding(
     finding_id: str,
     session: AsyncSession = Depends(get_session),
 ):
-    finding = await session.get(Finding, finding_id)
-    if not finding:
+    row = await _fetch_one(session, finding_id)
+    if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finding not found")
-    return FindingResponse.model_validate(finding, from_attributes=True)
+    finding, container_name = row
+    return _to_response(finding, container_name)
 
 
 @router.patch("/{finding_id}", response_model=FindingResponse)
@@ -79,8 +143,10 @@ async def update_finding(
     finding.status = body.status
     session.add(finding)
     await session.commit()
-    await session.refresh(finding)
-    return FindingResponse.model_validate(finding, from_attributes=True)
+
+    row = await _fetch_one(session, finding_id)
+    finding, container_name = row  # type: ignore[misc]
+    return _to_response(finding, container_name)
 
 
 @router.post(

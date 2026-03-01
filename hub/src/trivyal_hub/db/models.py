@@ -102,6 +102,7 @@ class Finding(SQLModel, table=True):
     installed_version: str
     fixed_version: str | None = None
     severity: Severity
+    description: str | None = None
     status: FindingStatus = Field(default=FindingStatus.ACTIVE)
     first_seen: datetime = Field(default_factory=_utcnow)
     last_seen: datetime = Field(default_factory=_utcnow)
