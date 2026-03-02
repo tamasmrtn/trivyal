@@ -8,6 +8,16 @@ Trivyal is designed for homelabs and small multi-server Docker environments. A l
 
 ---
 
+## Alternatives
+
+**[Harbor](https://goharbor.io/)** is a CNCF-graduated container registry with built-in vulnerability scanning, image signing, and role-based access control. Use it if you need a private registry — the scanning is a bonus that comes with it. It operates at the registry level (scanning images on push), not the runtime level, so it won't catch containers running images that were pushed before a new CVE was disclosed.
+
+**[DefectDojo](https://www.defectdojo.org/)** is a full DevSecOps vulnerability management platform. It ingests findings from many scanners (including Trivy), deduplicates them, tracks remediation, generates reports, and integrates with issue trackers and CI pipelines. Use it when you need a centralised security programme across multiple teams, products, and scanner types — it is a significant operational investment to run.
+
+**Use Trivyal instead when** you run a homelab or a small multi-server Docker environment and want a single lightweight tool that tells you what vulnerabilities are running on your hosts right now — no registry, no pipeline, no dedicated security team required. Trivyal focuses on one thing: discovering what is actually running via the Docker socket, scanning it with Trivy, and surfacing new findings to you.
+
+---
+
 ## Features
 
 ### Hub
