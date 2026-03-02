@@ -217,6 +217,12 @@ make test-ui
 
 ---
 
+## Inspiration
+
+The hub-agent model and overall UX philosophy were inspired by [Beszel](https://github.com/henrygd/beszel), a lightweight server monitoring tool. Use it!
+
+---
+
 ## License
 
 MIT
