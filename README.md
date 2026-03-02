@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/trivyal-logo-with-name.jpeg" alt="Trivyal" width="280" />
+  <img src="docs/trivyal-logo-no-bg.png" alt="Trivyal" width="280" />
 </p>
 
 <p align="center">A lightweight, self-hosted container vulnerability scanner with a hub-agent model, powered by <a href="https://github.com/aquasecurity/trivy">Trivy</a>.</p>
