@@ -1,0 +1,12 @@
+framework:
+  - dockerfile
+  - github_actions
+
+skip-check:
+  - CKV_DOCKER_7  # trivy:latest and uv:latest in COPY --from are intentional
+  - CKV_DOCKER_3  # privilege drop via gosu in entrypoint, not USER directive
+  - CKV_DOCKER_8  # same — entrypoint runs as root briefly then drops to trivyal
+  - CKV_DOCKER_9  # apt-get is needed for curl (healthcheck) and gosu
+  - CKV_GHA_7     # workflow_dispatch version input is intentional, not an injection risk
+
+quiet: true
