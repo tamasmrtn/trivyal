@@ -50,22 +50,24 @@ COPY --from=python-builder /app/.venv /app/.venv
 # Copy the compiled UI for FastAPI to serve as static files
 COPY --from=ui-builder /ui/dist ./static
 
-# Install curl for healthcheck, then create non-root user and persistent data directory
-RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+# Install curl for healthcheck and gosu for privilege dropping, then create non-root user
+RUN apt-get update && apt-get install -y --no-install-recommends curl gosu && \
     rm -rf /var/lib/apt/lists/* && \
     addgroup --system trivyal && \
     adduser --system --ingroup trivyal --no-create-home trivyal && \
     mkdir -p /app/data && \
     chown -R trivyal:trivyal /app/data
 
-USER trivyal
+COPY hub/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 8099
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8099/api/health
 
-# uvicorn resolves via PATH to /app/.venv/bin/uvicorn — no `uv run` wrapper
+# Entrypoint runs as root to fix bind-mount ownership, then drops to trivyal
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["uvicorn", "trivyal_hub.main:app", \
      "--host", "0.0.0.0", "--port", "8099", \
      "--no-access-log"]

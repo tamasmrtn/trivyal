@@ -10,14 +10,9 @@ services:
     network_mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - agent_data:/app/data
-    group_add:
-      - "${DOCKER_GID:-999}"
+      - ./agent/data:/app/data
     environment:
       TRIVYAL_HUB_URL: "${TRIVYAL_HUB_URL:-ws://localhost:8099}"
       TRIVYAL_TOKEN: "${AGENT_TOKEN}"
       TRIVYAL_KEY: "${AGENT_HUB_KEY}"
       TRIVYAL_SCAN_SCHEDULE: "${TRIVYAL_SCAN_SCHEDULE:-0 2 * * *}"
-
-volumes:
-  agent_data:

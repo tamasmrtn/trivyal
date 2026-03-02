@@ -124,7 +124,6 @@ Open `http://<hub-host>:8099` in your browser and log in with your admin credent
 TRIVYAL_HUB_URL=ws://<hub-host>:8099
 AGENT_TOKEN=<token from UI>
 AGENT_HUB_KEY=<hub public key from UI>
-DOCKER_GID=<output of: stat -c '%g' /var/run/docker.sock>
 ```
 
 4. Build and start the agent:
@@ -171,7 +170,6 @@ All variables use the `TRIVYAL_` prefix and are read from the environment or a `
 |---|---|---|
 | `AGENT_TOKEN` | — | Passed as `TRIVYAL_TOKEN` to the co-located agent in `docker-compose.hub.yml`. |
 | `AGENT_HUB_KEY` | — | Passed as `TRIVYAL_KEY` to the co-located agent in `docker-compose.hub.yml`. |
-| `DOCKER_GID` | `999` | GID of the Docker socket on the host. Find yours with `stat -c '%g' /var/run/docker.sock`. |
 
 ---
 

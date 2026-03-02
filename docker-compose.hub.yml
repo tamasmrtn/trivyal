@@ -10,7 +10,7 @@ services:
     ports:
       - "8099:8099"
     volumes:
-      - hub_data:/app/data
+      - ./hub/data:/app/data
     environment:
       TRIVYAL_SECRET_KEY: "change-me-to-a-long-random-string"
       TRIVYAL_DATA_DIR: /app/data
@@ -32,7 +32,7 @@ services:
   #   network_mode: host          # gives the agent access to other local containers' metadata
   #   volumes:
   #     - /var/run/docker.sock:/var/run/docker.sock:ro
-  #     - agent_data:/app/data
+  #     - ./agent/data:/app/data
   #   group_add:
   #     - "${DOCKER_GID:-999}"    # match host Docker socket GID; set DOCKER_GID in .env
   #   environment:
@@ -43,7 +43,3 @@ services:
   #   depends_on:
   #     trivyal-hub:
   #       condition: service_healthy
-
-volumes:
-  hub_data:
-  # agent_data:

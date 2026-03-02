@@ -38,17 +38,19 @@ COPY --from=python-builder /app/.venv /app/.venv
 
 # Create non-root group that matches the host Docker socket GID at runtime.
 # Default 999 covers most Debian/Ubuntu hosts; override via group_add in compose.
-RUN addgroup --system --gid 999 docker && \
+RUN apt-get update && apt-get install -y --no-install-recommends gosu && \
+    rm -rf /var/lib/apt/lists/* && \
     addgroup --system trivyal && \
     adduser --system --ingroup trivyal --no-create-home trivyal && \
-    adduser trivyal docker && \
     mkdir -p /app/data && \
     chown -R trivyal:trivyal /app/data
 
-USER trivyal
+COPY agent/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 HEALTHCHECK --interval=60s --timeout=5s --start-period=15s --retries=3 \
     CMD /app/.venv/bin/python -c "import trivyal_agent" || exit 1
 
-# python resolves via PATH to /app/.venv/bin/python — no `uv run` wrapper
+# Entrypoint runs as root to fix bind-mount ownership, then drops to trivyal
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python", "-m", "trivyal_agent.main"]
