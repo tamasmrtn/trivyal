@@ -114,15 +114,13 @@ class SimulatedAgent:
         msg = await self.recv_message(timeout=timeout)
         assert msg.get("type") == "heartbeat_ack", f"Expected heartbeat_ack, got {msg}"
 
-    async def handle_scan_trigger_and_respond(self, scan_data: dict | None = None) -> None:
-        """
-        Wait for a scan_trigger message from the hub, then respond with scan_result.
-
-        This must typically run concurrently with the HTTP call that triggers
-        the scan — see conftest usage with asyncio.gather / asyncio.create_task.
-        """
-        msg = await self.recv_message(timeout=15.0)
+    async def recv_scan_trigger(self, timeout: float = 15.0) -> None:
+        """Wait for a scan_trigger message from the hub (without responding)."""
+        msg = await self.recv_message(timeout=timeout)
         assert msg.get("type") == "scan_trigger", f"Expected scan_trigger, got {msg}"
+
+    async def send_scan_result(self, scan_data: dict | None = None) -> None:
+        """Send a scan_result message to the hub."""
         await self._ws.send(
             json.dumps(
                 {
@@ -131,3 +129,13 @@ class SimulatedAgent:
                 }
             )
         )
+
+    async def handle_scan_trigger_and_respond(self, scan_data: dict | None = None) -> None:
+        """
+        Wait for a scan_trigger message from the hub, then respond with scan_result.
+
+        This must typically run concurrently with the HTTP call that triggers
+        the scan — see conftest usage with asyncio.gather / asyncio.create_task.
+        """
+        await self.recv_scan_trigger()
+        await self.send_scan_result(scan_data)

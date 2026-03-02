@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
 from trivyal_hub.api.deps import require_auth
-from trivyal_hub.db.models import Agent, ScanResult
+from trivyal_hub.db.models import Agent, AgentStatus, ScanResult
 from trivyal_hub.db.session import get_session
 from trivyal_hub.schemas.common import PaginatedResponse
 from trivyal_hub.schemas.scans import ScanResultDetail, ScanResultResponse, ScanTriggerResponse
@@ -35,6 +35,10 @@ async def trigger_scan(
             status_code=status.HTTP_409_CONFLICT,
             detail="Agent is not connected",
         )
+
+    agent.status = AgentStatus.SCANNING
+    session.add(agent)
+    await session.commit()
 
     return ScanTriggerResponse(job_id=uuid4().hex)
 

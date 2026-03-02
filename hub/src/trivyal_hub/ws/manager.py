@@ -100,13 +100,13 @@ class ConnectionManager:
                     await session.commit()
 
                 elif msg_type == "scan_result":
-                    agent.status = AgentStatus.SCANNING
-                    session.add(agent)
-                    await session.commit()
-
                     scan_data = data.get("data", {})
                     await process_scan_result(session, agent.id, scan_data)
 
+                    # Refresh to avoid stale ORM state: trigger_scan sets SCANNING
+                    # in a separate session; without a refresh, SQLAlchemy sees no
+                    # change from ONLINE→ONLINE and skips the UPDATE.
+                    await session.refresh(agent)
                     agent.status = AgentStatus.ONLINE
                     agent.last_seen = datetime.now(UTC)
                     session.add(agent)

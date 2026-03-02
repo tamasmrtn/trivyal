@@ -110,6 +110,29 @@ class TestAgentStatusLifecycle:
         r = await hub.get(f"/api/v1/agents/{registered_agent['id']}")
         assert r.json()["status"] == "online"
 
+    async def test_agent_is_scanning_while_scan_in_progress(self, hub, registered_agent, connected_agent):
+        """Agent status must be 'scanning' after trigger is sent, before result arrives."""
+        # Trigger scan — don't await yet; let it run concurrently
+        trigger_task = asyncio.create_task(
+            hub.post(f"/api/v1/agents/{registered_agent['id']}/scans")
+        )
+
+        # Wait for the scan_trigger to reach the simulated agent (but don't respond)
+        await connected_agent.recv_scan_trigger(timeout=10.0)
+
+        # Give the hub a moment to commit the SCANNING status
+        await asyncio.sleep(0.2)
+
+        r = await hub.get(f"/api/v1/agents/{registered_agent['id']}")
+        assert r.json()["status"] == "scanning", (
+            f"Expected 'scanning' while scan is in progress, got {r.json()['status']!r}"
+        )
+
+        # Now send the result so the scan cycle completes cleanly
+        await connected_agent.send_scan_result()
+        await trigger_task
+        await asyncio.sleep(0.5)
+
     async def test_agent_is_online_after_scan_completes(self, hub, registered_agent, connected_agent):
         async with asyncio.TaskGroup() as tg:
             tg.create_task(hub.post(f"/api/v1/agents/{registered_agent['id']}/scans"))
