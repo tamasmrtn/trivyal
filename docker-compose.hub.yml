@@ -2,10 +2,7 @@
 name: trivyal-hub
 services:
   trivyal-hub:
-    build:
-      context: .
-      dockerfile: hub/Dockerfile
-    image: trivyal/hub:latest
+    image: ghcr.io/tamasmrtn/trivyal-hub:latest
     restart: unless-stopped
     ports:
       - "8099:8099"
@@ -24,10 +21,7 @@ services:
 
   # Optional: run an agent on the hub host itself to monitor it too
   # trivyal-agent:
-  #   build:
-  #     context: .
-  #     dockerfile: agent/Dockerfile
-  #   image: trivyal/agent:latest
+  #   image: ghcr.io/tamasmrtn/trivyal-agent:latest
   #   restart: unless-stopped
   #   network_mode: host          # gives the agent access to other local containers' metadata
   #   volumes:

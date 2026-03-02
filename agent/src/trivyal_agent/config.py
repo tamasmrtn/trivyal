@@ -1,8 +1,9 @@
 """Agent settings loaded from environment variables."""
 
+import importlib.metadata
 from pathlib import Path
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings
 
 
@@ -14,7 +15,7 @@ class Settings(BaseSettings):
     key: SecretStr = SecretStr("")  # Hub Ed25519 public key (base64-encoded)
     scan_schedule: str = "0 2 * * *"  # cron expression, default 2am nightly
     data_dir: Path = Path("/app/data")
-    agent_version: str = "0.1.0"
+    agent_version: str = Field(default_factory=lambda: importlib.metadata.version("trivyal-agent"))
     heartbeat_interval: int = 30  # seconds between heartbeats
     reconnect_delay: int = 10  # seconds before reconnect attempt
 

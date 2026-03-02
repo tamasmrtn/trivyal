@@ -1,5 +1,6 @@
 """FastAPI app factory and lifespan."""
 
+import importlib.metadata
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, WebSocket
@@ -18,7 +19,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Trivyal Hub", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Trivyal Hub", version=importlib.metadata.version("trivyal-hub"), lifespan=lifespan)
 
 
 # Health check (no auth)
