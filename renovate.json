@@ -2,5 +2,93 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "pre-commit": {
+    "enabled": true
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 5am on monday"
+    ]
+  },
+  "labels": [
+    "dependencies"
+  ],
+  "packageRules": [
+    {
+      "description": "Group hub Python updates (minor + patch into one PR)",
+      "matchManagers": [
+        "pep621"
+      ],
+      "matchFileNames": [
+        "hub/pyproject.toml"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "hub Python deps"
+    },
+    {
+      "description": "Group agent Python updates (minor + patch into one PR)",
+      "matchManagers": [
+        "pep621"
+      ],
+      "matchFileNames": [
+        "agent/pyproject.toml"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "agent Python deps"
+    },
+    {
+      "description": "Group integration Python updates (minor + patch into one PR)",
+      "matchManagers": [
+        "pep621"
+      ],
+      "matchFileNames": [
+        "integration/pyproject.toml"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "integration Python deps"
+    },
+    {
+      "description": "Group UI npm updates (minor + patch into one PR)",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "UI npm deps"
+    },
+    {
+      "description": "Group Docker base image updates",
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "groupName": "Docker base images"
+    },
+    {
+      "description": "Group GitHub Actions updates",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "GitHub Actions"
+    },
+    {
+      "description": "Group pre-commit hook updates",
+      "matchManagers": [
+        "pre-commit"
+      ],
+      "groupName": "pre-commit hooks"
+    }
   ]
 }

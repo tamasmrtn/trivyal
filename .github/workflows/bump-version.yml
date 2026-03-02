@@ -17,9 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          # Use GITHUB_TOKEN — has push access by default for public repos.
-          # If main is branch-protected, swap for a PAT stored as a secret.
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_BOT_TOKEN }}
 
       - uses: actions/setup-node@v6
         with:
