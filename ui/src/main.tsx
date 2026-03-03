@@ -7,6 +7,7 @@ import { Dashboard } from "@/pages/Dashboard";
 import { Agents } from "@/pages/Agents";
 import { Findings } from "@/pages/Findings";
 import { FindingDetail } from "@/pages/FindingDetail";
+import { Insights } from "@/pages/Insights";
 import { ScanHistory } from "@/pages/ScanHistory";
 import { Settings } from "@/pages/Settings";
 import { Login } from "@/pages/Login";
@@ -33,6 +34,7 @@ function App() {
         <Route path="agents" element={<Agents />} />
         <Route path="findings" element={<Findings />} />
         <Route path="findings/:id" element={<FindingDetail />} />
+        <Route path="insights" element={<Insights />} />
         <Route path="scans" element={<ScanHistory />} />
         <Route path="settings" element={<Settings />} />
       </Route>

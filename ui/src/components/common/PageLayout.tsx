@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Server,
   ShieldAlert,
+  TrendingUp,
   History,
   Settings,
   LogOut,
@@ -17,6 +18,7 @@ const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/agents", icon: Server, label: "Agents" },
   { to: "/findings", icon: ShieldAlert, label: "Findings" },
+  { to: "/insights", icon: TrendingUp, label: "Insights" },
   { to: "/scans", icon: History, label: "Scan History" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
