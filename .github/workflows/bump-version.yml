@@ -9,10 +9,11 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   bump:
-    name: Bump version and tag
+    name: Bump version and open PR
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -28,12 +29,21 @@ jobs:
           chmod +x scripts/bump-version.sh
           ./scripts/bump-version.sh ${{ inputs.version }}
 
-      - name: Commit and push tag
+      - name: Commit and push release branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b chore/release-v${{ inputs.version }}
           git add hub/pyproject.toml agent/pyproject.toml integration/pyproject.toml ui/package.json
           git commit -m "chore: release v${{ inputs.version }}"
-          git tag -a v${{ inputs.version }} -m "Release v${{ inputs.version }}"
-          git push
-          git push origin v${{ inputs.version }}
+          git push origin chore/release-v${{ inputs.version }}
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
+        run: |
+          gh pr create \
+            --title "chore: release v${{ inputs.version }}" \
+            --body "Automated version bump to \`v${{ inputs.version }}\`. Merge this PR to trigger the release." \
+            --base main \
+            --head chore/release-v${{ inputs.version }}
