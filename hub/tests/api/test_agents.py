@@ -28,6 +28,18 @@ class TestRegisterAgent:
         assert "hub_public_key" in body
         assert body["name"] == "server-1"
 
+    async def test_hub_public_key_is_same_for_all_agents(self, client, auth_header):
+        r1 = await client.post("/api/v1/agents", json={"name": "server-1"}, headers=auth_header)
+        r2 = await client.post("/api/v1/agents", json={"name": "server-2"}, headers=auth_header)
+        assert r1.status_code == 201
+        assert r2.status_code == 201
+        assert r1.json()["hub_public_key"] == r2.json()["hub_public_key"]
+
+    async def test_each_agent_gets_unique_token(self, client, auth_header):
+        r1 = await client.post("/api/v1/agents", json={"name": "server-1"}, headers=auth_header)
+        r2 = await client.post("/api/v1/agents", json={"name": "server-2"}, headers=auth_header)
+        assert r1.json()["token"] != r2.json()["token"]
+
     async def test_rejects_duplicate_name(self, client, auth_header):
         payload = {"name": "server-1"}
         await client.post("/api/v1/agents", json=payload, headers=auth_header)

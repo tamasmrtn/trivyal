@@ -42,13 +42,19 @@ class Severity(StrEnum):
 # ── Tables ───────────────────────────────────────────────────────────────────
 
 
+class HubSettings(SQLModel, table=True):
+    """Singleton row (id=1) storing the hub's Ed25519 keypair."""
+
+    id: int = Field(default=1, primary_key=True)
+    public_key: str
+    private_key: str
+
+
 class Agent(SQLModel, table=True):
     id: str = Field(default_factory=_new_id, primary_key=True)
     name: str = Field(unique=True, index=True)
     token_hash: str
     fingerprint: str | None = None
-    public_key: str
-    private_key: str
     status: AgentStatus = Field(default=AgentStatus.OFFLINE)
     last_seen: datetime | None = None
     host_metadata: dict | None = Field(default=None, sa_column=Column(JSON))
