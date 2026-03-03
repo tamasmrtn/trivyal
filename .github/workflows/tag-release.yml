@@ -1,7 +1,9 @@
 name: Tag release
 
 on:
-  push:
+  pull_request:
+    types:
+      - closed
     branches:
       - main
 
@@ -12,18 +14,18 @@ jobs:
   tag:
     name: Create and push version tag
     runs-on: ubuntu-latest
-    if: "startsWith(github.event.head_commit.message, 'chore: release v')"
+    if: "github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'chore/release-v')"
     steps:
       - uses: actions/checkout@v6
         with:
           token: ${{ secrets.RELEASE_BOT_TOKEN }}
 
-      - name: Extract version from commit message
+      - name: Extract version from branch name
         id: version
         env:
-          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
-          VERSION=$(echo "$COMMIT_MSG" | sed 's/chore: release v//')
+          VERSION=$(echo "$BRANCH" | sed 's/chore\/release-v//')
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create and push tag
