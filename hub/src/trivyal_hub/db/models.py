@@ -70,6 +70,7 @@ class Container(SQLModel, table=True):
     id: str = Field(default_factory=_new_id, primary_key=True)
     agent_id: str = Field(foreign_key="agent.id", index=True)
     image_name: str
+    container_name: str | None = None
     image_digest: str | None = None
     last_scanned: datetime | None = None
     created_at: datetime = Field(default_factory=_utcnow)

@@ -103,7 +103,8 @@ class ConnectionManager:
 
                 elif msg_type == "scan_result":
                     scan_data = data.get("data", {})
-                    await process_scan_result(session, agent.id, scan_data)
+                    container_name = data.get("container_name")
+                    await process_scan_result(session, agent.id, scan_data, container_name)
 
                     # Refresh to avoid stale ORM state: trigger_scan sets SCANNING
                     # in a separate session; without a refresh, SQLAlchemy sees no

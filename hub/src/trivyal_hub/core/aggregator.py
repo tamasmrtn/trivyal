@@ -18,6 +18,7 @@ async def process_scan_result(
     session: AsyncSession,
     agent_id: str,
     scan_data: dict,
+    container_name: str | None = None,
 ) -> ScanResult:
     """Ingest a Trivy scan result: upsert containers, create scan record, upsert findings."""
     now = datetime.now(UTC)
@@ -32,11 +33,18 @@ async def process_scan_result(
     )
     container = (await session.execute(stmt)).scalar_one_or_none()
     if not container:
-        container = Container(agent_id=agent_id, image_name=image_name, image_digest=image_digest)
+        container = Container(
+            agent_id=agent_id,
+            image_name=image_name,
+            image_digest=image_digest,
+            container_name=container_name,
+        )
         session.add(container)
         await session.flush()
     container.last_scanned = now
     container.image_digest = image_digest or container.image_digest
+    if container_name:
+        container.container_name = container_name
 
     # Create scan result
     severity_counts = {s: 0 for s in Severity}
