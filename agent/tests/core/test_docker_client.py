@@ -6,11 +6,12 @@ from trivyal_agent.core.docker_client import collect_host_metadata, list_running
 
 
 class TestListRunningImages:
-    async def test_returns_image_tags(self):
+    async def test_returns_image_and_container_name(self):
         mock_image = MagicMock()
         mock_image.tags = ["nginx:latest"]
         mock_container = MagicMock()
         mock_container.image = mock_image
+        mock_container.name = "my-nginx"
 
         mock_client = MagicMock()
         mock_client.containers.list.return_value = [mock_container]
@@ -19,7 +20,7 @@ class TestListRunningImages:
             mock_docker.from_env.return_value = mock_client
             result = await list_running_images()
 
-        assert result == ["nginx:latest"]
+        assert result == [{"image_name": "nginx:latest", "container_name": "my-nginx"}]
 
     async def test_uses_image_id_when_no_tags(self):
         mock_image = MagicMock()
@@ -27,6 +28,7 @@ class TestListRunningImages:
         mock_image.id = "sha256:abc123"
         mock_container = MagicMock()
         mock_container.image = mock_image
+        mock_container.name = "untagged-container"
 
         mock_client = MagicMock()
         mock_client.containers.list.return_value = [mock_container]
@@ -35,7 +37,7 @@ class TestListRunningImages:
             mock_docker.from_env.return_value = mock_client
             result = await list_running_images()
 
-        assert result == ["sha256:abc123"]
+        assert result == [{"image_name": "sha256:abc123", "container_name": "untagged-container"}]
 
     async def test_returns_empty_list_when_no_containers(self):
         mock_client = MagicMock()

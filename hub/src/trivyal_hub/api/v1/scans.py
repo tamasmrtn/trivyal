@@ -7,13 +7,34 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
 from trivyal_hub.api.deps import require_auth
-from trivyal_hub.db.models import Agent, AgentStatus, ScanResult
+from trivyal_hub.db.models import Agent, AgentStatus, Container, ScanResult
 from trivyal_hub.db.session import get_session
 from trivyal_hub.schemas.common import PaginatedResponse
 from trivyal_hub.schemas.scans import ScanResultDetail, ScanResultResponse, ScanTriggerResponse
 from trivyal_hub.ws.manager import manager
 
 router = APIRouter(tags=["scans"], dependencies=[Depends(require_auth)])
+
+
+def _to_scan_response(
+    scan: ScanResult,
+    agent_name: str | None,
+    container_name: str | None,
+    image_name: str | None,
+) -> ScanResultResponse:
+    return ScanResultResponse(
+        id=scan.id,
+        container_id=scan.container_id,
+        agent_id=scan.agent_id,
+        agent_name=agent_name,
+        container_name=container_name or image_name,
+        scanned_at=scan.scanned_at,
+        critical_count=scan.critical_count,
+        high_count=scan.high_count,
+        medium_count=scan.medium_count,
+        low_count=scan.low_count,
+        unknown_count=scan.unknown_count,
+    )
 
 
 @router.post(
@@ -54,14 +75,20 @@ async def list_agent_scans(
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
 
-    query = select(ScanResult).where(ScanResult.agent_id == agent_id).order_by(ScanResult.scanned_at.desc())
+    query = (
+        select(ScanResult, Agent.name, Container.container_name, Container.image_name)
+        .join(Agent, ScanResult.agent_id == Agent.id)
+        .join(Container, ScanResult.container_id == Container.id)
+        .where(ScanResult.agent_id == agent_id)
+        .order_by(ScanResult.scanned_at.desc())
+    )
     count_q = select(func.count()).select_from(ScanResult).where(ScanResult.agent_id == agent_id)
 
     total = (await session.execute(count_q)).scalar_one()
-    results = (await session.execute(query.offset((page - 1) * page_size).limit(page_size))).scalars().all()
+    rows = (await session.execute(query.offset((page - 1) * page_size).limit(page_size))).all()
 
     return PaginatedResponse(
-        data=[ScanResultResponse.model_validate(r, from_attributes=True) for r in results],
+        data=[_to_scan_response(scan, agent_name, cname, iname) for scan, agent_name, cname, iname in rows],
         total=total,
         page=page,
         page_size=page_size,
@@ -74,14 +101,19 @@ async def list_all_scans(
     page_size: int = Query(50, ge=1, le=200),
     session: AsyncSession = Depends(get_session),
 ):
-    query = select(ScanResult).order_by(ScanResult.scanned_at.desc())
+    query = (
+        select(ScanResult, Agent.name, Container.container_name, Container.image_name)
+        .join(Agent, ScanResult.agent_id == Agent.id)
+        .join(Container, ScanResult.container_id == Container.id)
+        .order_by(ScanResult.scanned_at.desc())
+    )
     count_q = select(func.count()).select_from(ScanResult)
 
     total = (await session.execute(count_q)).scalar_one()
-    results = (await session.execute(query.offset((page - 1) * page_size).limit(page_size))).scalars().all()
+    rows = (await session.execute(query.offset((page - 1) * page_size).limit(page_size))).all()
 
     return PaginatedResponse(
-        data=[ScanResultResponse.model_validate(r, from_attributes=True) for r in results],
+        data=[_to_scan_response(scan, agent_name, cname, iname) for scan, agent_name, cname, iname in rows],
         total=total,
         page=page,
         page_size=page_size,
@@ -93,7 +125,18 @@ async def get_scan(
     scan_id: str,
     session: AsyncSession = Depends(get_session),
 ):
-    scan = await session.get(ScanResult, scan_id)
-    if not scan:
+    row = (
+        await session.execute(
+            select(ScanResult, Agent.name, Container.container_name, Container.image_name)
+            .join(Agent, ScanResult.agent_id == Agent.id)
+            .join(Container, ScanResult.container_id == Container.id)
+            .where(ScanResult.id == scan_id)
+        )
+    ).first()
+    if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found")
-    return ScanResultDetail.model_validate(scan, from_attributes=True)
+    scan, agent_name, cname, iname = row
+    return ScanResultDetail(
+        **_to_scan_response(scan, agent_name, cname, iname).model_dump(),
+        trivy_raw=scan.trivy_raw,
+    )

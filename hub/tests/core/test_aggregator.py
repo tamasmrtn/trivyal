@@ -3,17 +3,14 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from trivyal_hub.core.aggregator import process_scan_result
-from trivyal_hub.core.auth import generate_keypair, generate_token, hash_token
+from trivyal_hub.core.auth import generate_token, hash_token
 from trivyal_hub.db.models import Agent, Container, Finding
 
 
 async def _create_agent(session: AsyncSession) -> Agent:
-    pub, priv = generate_keypair()
     agent = Agent(
         name="test-agent",
         token_hash=hash_token(generate_token()),
-        public_key=pub,
-        private_key=priv,
     )
     session.add(agent)
     await session.commit()
@@ -60,6 +57,22 @@ class TestProcessScanResult:
 
         findings = (await session.execute(select(Finding))).scalars().all()
         assert len(findings) == 2
+
+    async def test_stores_container_name(self, session):
+        agent = await _create_agent(session)
+        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="my-nginx")
+
+        containers = (await session.execute(select(Container))).scalars().all()
+        assert containers[0].container_name == "my-nginx"
+
+    async def test_updates_container_name_on_rescan(self, session):
+        agent = await _create_agent(session)
+        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="old-name")
+        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="new-name")
+
+        containers = (await session.execute(select(Container))).scalars().all()
+        assert len(containers) == 1
+        assert containers[0].container_name == "new-name"
 
     async def test_reuses_existing_container(self, session):
         agent = await _create_agent(session)

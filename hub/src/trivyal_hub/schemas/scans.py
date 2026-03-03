@@ -9,6 +9,8 @@ class ScanResultResponse(BaseModel):
     id: str
     container_id: str
     agent_id: str
+    agent_name: str | None
+    container_name: str | None
     scanned_at: datetime
     critical_count: int
     high_count: int

@@ -114,9 +114,10 @@ class TestAgentClientScanCycle:
         mock_ws.send = AsyncMock(side_effect=lambda m: sent.append(json.loads(m)))
 
         scan_result = {"ArtifactName": "nginx:latest", "Results": []}
+        containers = [{"image_name": "nginx:latest", "container_name": "my-nginx"}]
 
         with (
-            patch("trivyal_agent.ws.client.list_running_images", return_value=["nginx:latest"]),
+            patch("trivyal_agent.ws.client.list_running_images", return_value=containers),
             patch("trivyal_agent.ws.client.scan_all_images", return_value=[scan_result]),
             patch("trivyal_agent.ws.client.save"),
         ):
@@ -125,6 +126,7 @@ class TestAgentClientScanCycle:
         assert len(sent) == 1
         assert sent[0]["type"] == "scan_result"
         assert sent[0]["data"]["ArtifactName"] == "nginx:latest"
+        assert sent[0]["container_name"] == "my-nginx"
 
     async def test_does_nothing_when_no_containers(self, tmp_path):
         settings = _make_settings(data_dir=str(tmp_path))

@@ -28,7 +28,7 @@ _SORT_COLUMNS: dict = {
 }
 
 
-def _to_response(finding: Finding, container_name: str | None) -> FindingResponse:
+def _to_response(finding: Finding, container_name: str | None, image_name: str | None) -> FindingResponse:
     return FindingResponse(
         id=finding.id,
         scan_result_id=finding.scan_result_id,
@@ -39,17 +39,17 @@ def _to_response(finding: Finding, container_name: str | None) -> FindingRespons
         severity=finding.severity,
         description=finding.description,
         status=finding.status,
-        container_name=container_name,
+        container_name=container_name or image_name,
         first_seen=finding.first_seen,
         last_seen=finding.last_seen,
     )
 
 
 async def _fetch_one(session: AsyncSession, finding_id: str):
-    """Fetch a single finding joined with its container image name."""
+    """Fetch a single finding joined with its container name and image name."""
     return (
         await session.execute(
-            select(Finding, Container.image_name)
+            select(Finding, Container.container_name, Container.image_name)
             .join(ScanResult, Finding.scan_result_id == ScanResult.id)
             .join(Container, ScanResult.container_id == Container.id)
             .where(Finding.id == finding_id)
@@ -75,7 +75,7 @@ async def list_findings(
     session: AsyncSession = Depends(get_session),
 ):
     query = (
-        select(Finding, Container.image_name)
+        select(Finding, Container.container_name, Container.image_name)
         .join(ScanResult, Finding.scan_result_id == ScanResult.id)
         .join(Container, ScanResult.container_id == Container.id)
     )
@@ -112,7 +112,7 @@ async def list_findings(
     rows = (await session.execute(query.offset((page - 1) * page_size).limit(page_size))).all()
 
     return PaginatedResponse(
-        data=[_to_response(finding, container_name) for finding, container_name in rows],
+        data=[_to_response(finding, cname, iname) for finding, cname, iname in rows],
         total=total,
         page=page,
         page_size=page_size,
@@ -127,8 +127,8 @@ async def get_finding(
     row = await _fetch_one(session, finding_id)
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finding not found")
-    finding, container_name = row
-    return _to_response(finding, container_name)
+    finding, cname, iname = row
+    return _to_response(finding, cname, iname)
 
 
 @router.patch("/{finding_id}", response_model=FindingResponse)
@@ -145,8 +145,8 @@ async def update_finding(
     await session.commit()
 
     row = await _fetch_one(session, finding_id)
-    finding, container_name = row  # type: ignore[misc]
-    return _to_response(finding, container_name)
+    finding, cname, iname = row  # type: ignore[misc]
+    return _to_response(finding, cname, iname)
 
 
 @router.post(

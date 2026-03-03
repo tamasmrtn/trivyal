@@ -58,14 +58,18 @@ export function ScanTable({ scans }: ScanTableProps) {
                 {formatDate(scan.scanned_at)}
               </TableCell>
               <TableCell>
-                <span className="font-mono text-xs">
-                  {shortId(scan.agent_id)}
-                </span>
+                {scan.agent_name ?? (
+                  <span className="font-mono text-xs">
+                    {shortId(scan.agent_id)}
+                  </span>
+                )}
               </TableCell>
               <TableCell>
-                <span className="font-mono text-xs">
-                  {shortId(scan.container_id)}
-                </span>
+                {scan.container_name ?? (
+                  <span className="font-mono text-xs">
+                    {shortId(scan.container_id)}
+                  </span>
+                )}
               </TableCell>
               <TableCell className="text-center">
                 <Count value={scan.critical_count} className="text-red-600" />
