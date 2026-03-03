@@ -11,21 +11,21 @@ import docker  # type: ignore[import-untyped]
 logger = logging.getLogger(__name__)
 
 
-def _list_running_images() -> list[str]:
-    """Return image names for all currently running containers (sync)."""
+def _list_running_containers() -> list[dict]:
+    """Return image name and container name for all running containers (sync)."""
     client = docker.from_env()
     containers = client.containers.list()
-    images = []
+    result = []
     for container in containers:
         image_tag = container.image.tags[0] if container.image.tags else container.image.id
-        images.append(image_tag)
+        result.append({"image_name": image_tag, "container_name": container.name})
     client.close()
-    return images
+    return result
 
 
-async def list_running_images() -> list[str]:
+async def list_running_images() -> list[dict]:
     """Async wrapper — runs the Docker SDK call in a thread pool executor."""
-    return await asyncio.to_thread(_list_running_images)
+    return await asyncio.to_thread(_list_running_containers)
 
 
 def _get_docker_version() -> str:

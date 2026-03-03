@@ -123,26 +123,37 @@ class AgentClient:
         """Discover containers, scan each with Trivy, and send results to hub."""
         logger.info("Starting scan cycle")
         try:
-            images = await list_running_images()
+            containers = await list_running_images()
         except Exception:
             logger.exception("Failed to list running containers")
             return
 
-        if not images:
+        if not containers:
             logger.info("No running containers found — nothing to scan")
             return
 
-        logger.info("Found %d container(s) to scan: %s", len(images), images)
-        results = await scan_all_images(images)
+        # Deduplicate by image name; first container name found wins
+        container_map: dict[str, str] = {}
+        image_names: list[str] = []
+        for c in containers:
+            if c["image_name"] not in container_map:
+                container_map[c["image_name"]] = c["container_name"]
+                image_names.append(c["image_name"])
+
+        logger.info("Found %d container(s) to scan: %s", len(image_names), image_names)
+        results = await scan_all_images(image_names)
 
         for result in results:
             image_name = result.get("ArtifactName", "unknown")
+            container_name = container_map.get(image_name)
             save(self._settings.data_dir, image_name, result)
-            await self._send_scan_result(ws, result)
+            await self._send_scan_result(ws, result, container_name)
 
-    async def _send_scan_result(self, ws: ws_client.ClientConnection, result: dict) -> None:
+    async def _send_scan_result(
+        self, ws: ws_client.ClientConnection, result: dict, container_name: str | None = None
+    ) -> None:
         try:
-            await ws.send(json.dumps({"type": "scan_result", "data": result}))
+            await ws.send(json.dumps({"type": "scan_result", "data": result, "container_name": container_name}))
             logger.info("Sent scan result for %s", result.get("ArtifactName", "unknown"))
         except Exception:
             logger.exception("Failed to send scan result — will retry on reconnect")
