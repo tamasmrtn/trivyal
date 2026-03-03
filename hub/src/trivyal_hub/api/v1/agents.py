@@ -5,9 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
 from trivyal_hub.api.deps import require_auth
-from trivyal_hub.core.auth import generate_keypair, generate_token, hash_token
+from trivyal_hub.core.auth import generate_token, hash_token
 from trivyal_hub.db.models import Agent, AgentStatus
-from trivyal_hub.db.session import get_session
+from trivyal_hub.db.session import get_hub_settings, get_session
 from trivyal_hub.schemas.agents import AgentCreate, AgentRegistered, AgentResponse
 from trivyal_hub.schemas.common import PaginatedResponse
 
@@ -49,13 +49,11 @@ async def register_agent(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Agent name already exists")
 
     token = generate_token()
-    public_key, private_key = generate_keypair()
+    hub_settings = await get_hub_settings(session)
 
     agent = Agent(
         name=body.name,
         token_hash=hash_token(token),
-        public_key=public_key,
-        private_key=private_key,
     )
     session.add(agent)
     await session.commit()
@@ -65,7 +63,7 @@ async def register_agent(
         id=agent.id,
         name=agent.name,
         token=token,
-        hub_public_key=public_key,
+        hub_public_key=hub_settings.public_key,
     )
 
 

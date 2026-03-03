@@ -11,6 +11,7 @@ from sqlmodel import select
 from trivyal_hub.core.aggregator import process_scan_result
 from trivyal_hub.core.auth import sign_challenge, verify_token
 from trivyal_hub.db.models import Agent, AgentStatus
+from trivyal_hub.db.session import get_hub_settings
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +33,9 @@ class ConnectionManager:
             return None
 
         # Challenge-response: hub signs a random challenge, agent verifies
+        hub_settings = await get_hub_settings(session)
         challenge = secrets.token_bytes(32)
-        signature = sign_challenge(agent.private_key, challenge)
+        signature = sign_challenge(hub_settings.private_key, challenge)
         await ws.send_json(
             {
                 "type": "challenge",
