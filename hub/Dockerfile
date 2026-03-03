@@ -1,7 +1,7 @@
 # hub/Dockerfile
 
 # ── Stage 1: Build the React UI ──────────────────────────────────────────────
-FROM node:22-alpine AS ui-builder
+FROM node:24-alpine AS ui-builder
 
 WORKDIR /ui
 
