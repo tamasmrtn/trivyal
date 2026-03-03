@@ -67,6 +67,8 @@ export interface ScanResultResponse {
   id: string;
   container_id: string;
   agent_id: string;
+  agent_name: string | null;
+  container_name: string | null;
   scanned_at: string;
   critical_count: number;
   high_count: number;
