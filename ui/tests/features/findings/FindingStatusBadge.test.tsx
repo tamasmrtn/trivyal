@@ -16,12 +16,12 @@ describe("FindingStatusBadge", () => {
   it("applies correct color for active status", () => {
     render(<FindingStatusBadge status="active" />);
     const badge = screen.getByText("Active");
-    expect(badge.className).toContain("bg-red-600");
+    expect(badge.className).toContain("bg-sky-600/15");
   });
 
   it("applies correct color for fixed status", () => {
     render(<FindingStatusBadge status="fixed" />);
     const badge = screen.getByText("Fixed");
-    expect(badge.className).toContain("bg-green-600");
+    expect(badge.className).toContain("bg-green-700/15");
   });
 });
