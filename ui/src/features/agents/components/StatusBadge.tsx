@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils";
 import type { AgentStatus } from "@/lib/api/types";
 
 const statusStyles: Record<AgentStatus, string> = {
-  online: "bg-green-600 text-white border-transparent",
-  offline: "bg-red-600 text-white border-transparent",
-  scanning: "bg-primary text-primary-foreground border-transparent",
+  online: "bg-green-600/15 text-green-400 border border-green-600/30",
+  offline: "bg-red-600/15 text-red-400 border border-red-600/30",
+  scanning: "bg-primary/15 text-primary border border-primary/30",
 };
 
 const statusLabels: Record<AgentStatus, string> = {

@@ -98,23 +98,38 @@ The primary teal is deepened from `#00d4b4` to `#00b89c` in light mode so it hol
 
 ### Severity Colours
 
-Severity colours are the only place warm/saturated hues appear. They are never used in brand elements or decorative UI. The values are the same in both modes — the fills are strong enough to read on any background.
+Severity colours are the only place warm/saturated hues appear. They are never used in brand elements or decorative UI.
 
-| Severity | Background | Text | Hex bg |
-|----------|-----------|------|--------|
-| CRITICAL | Red | White | `#dc2626` |
-| HIGH | Orange | White | `#ea580c` |
-| MEDIUM | Amber | Black | `#d97706` |
-| LOW | Blue | White | `#2563eb` |
-| UNKNOWN | Slate | White | `#4b5563` |
+Severity badges use a **ghost/tinted variant**: a low-opacity background (15%), coloured text, and a faint coloured border. This preserves semantic colour without dominating the row against the dark palette. The base hues are the same in both modes; increase opacity to `/20` in light mode if contrast is insufficient.
+
+| Severity | Hue | Tailwind classes |
+|----------|-----|-----------------|
+| CRITICAL | Red | `bg-red-600/15 text-red-400 border border-red-600/30` |
+| HIGH | Orange | `bg-orange-600/15 text-orange-400 border border-orange-600/30` |
+| MEDIUM | Amber | `bg-amber-600/15 text-amber-400 border border-amber-600/30` |
+| LOW | Blue | `bg-blue-600/15 text-blue-400 border border-blue-600/30` |
+| UNKNOWN | Slate | `bg-gray-600/15 text-gray-400 border border-gray-600/30` |
+
+### Finding Status Colours
+
+Finding status badges represent **workflow state**, not danger level. They must never reuse severity hues (red, orange, amber) — those are reserved for severity badges and destructive actions. Each status uses a distinct hue with the same ghost/tinted treatment as severity badges.
+
+| Status | Hue | Tailwind classes | Meaning |
+|--------|-----|-----------------|---------|
+| Active | Sky | `bg-sky-600/15 text-sky-400 border border-sky-600/30` | Finding is open and unaddressed |
+| Fixed | Green | `bg-green-700/15 text-green-400 border border-green-700/30` | Vulnerability has been patched |
+| Accepted | Violet | `bg-violet-600/15 text-violet-400 border border-violet-600/30` | Risk acknowledged and accepted |
+| False Positive | Slate | `bg-gray-600/15 text-gray-400 border border-gray-600/30` | Dismissed as not applicable |
 
 ### Agent Status Colours
 
-| Status | Colour | Dark hex | Light hex | Meaning |
-|--------|--------|----------|-----------|---------|
-| Online | Green | `#16a34a` | `#16a34a` | Agent connected, idle |
-| Scanning | Teal | `#00d4b4` | `#00b89c` | Active scan in progress (tracks primary) |
-| Offline | Red | `#dc2626` | `#dc2626` | Agent disconnected |
+Agent status badges use the same ghost/tinted treatment as severity and finding status badges. `scanning` uses the CSS primary variable so it automatically tracks the mode-appropriate teal.
+
+| Status | Hue | Tailwind classes | Meaning |
+|--------|-----|-----------------|---------|
+| Online | Green | `bg-green-600/15 text-green-400 border border-green-600/30` | Agent connected, idle |
+| Scanning | Teal | `bg-primary/15 text-primary border border-primary/30` | Active scan in progress |
+| Offline | Red | `bg-red-600/15 text-red-400 border border-red-600/30` | Agent disconnected |
 
 ### Teal Glow (use sparingly)
 
@@ -237,9 +252,9 @@ Button labels are sentence-case. Icon buttons must have a `title` attribute for 
 
 ### Badges
 
-All badges use the `<Badge>` component. They are small, filled, and use sharp radius (`rounded`). Text is always `text-xs font-medium uppercase`.
+All badges use the `<Badge>` component. They are small and use sharp radius (`rounded`). Text is always `text-xs font-medium uppercase`.
 
-Severity and status badges have a solid fill matching their semantic colour. The same badge colours work in both modes — their saturation is strong enough to be unambiguous on any background.
+All status and severity badges use a **ghost/tinted style**: low-opacity background (15%), coloured text, and a faint coloured border (30%). This keeps the palette readable without overwhelming the dark surface. Do not use solid fills for these badges. See the Severity Colours, Finding Status Colours, and Agent Status Colours sections for per-value Tailwind classes.
 
 ### Forms & Inputs
 
