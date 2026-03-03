@@ -90,3 +90,48 @@ export interface SettingsResponse {
   notify_on_critical: boolean;
   notify_on_high: boolean;
 }
+
+export interface InsightsSummary {
+  active_findings: number;
+  critical_high: number;
+  new_in_period: number;
+  fix_rate: number;
+}
+
+export interface TrendDayPoint {
+  date: string;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  new: number;
+  resolved: number;
+}
+
+export interface TrendResponse {
+  days: TrendDayPoint[];
+  scan_events: string[];
+}
+
+export interface AgentDayPoint {
+  date: string;
+  total: number;
+}
+
+export interface AgentTrend {
+  agent_id: string;
+  name: string;
+  days: AgentDayPoint[];
+}
+
+export interface AgentTrendResponse {
+  agents: AgentTrend[];
+  scan_events: string[];
+}
+
+export interface TopCve {
+  cve_id: string;
+  severity: Severity;
+  containers: number;
+  agents: number;
+}
