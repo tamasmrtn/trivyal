@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer } from "react";
 import {
   fetchAgentsTrend,
   fetchInsightsSummary,
@@ -19,15 +19,38 @@ interface InsightsData {
   topCves: TopCve[];
 }
 
+type State = {
+  data: InsightsData | null;
+  loading: boolean;
+  error: string | null;
+};
+
+type Action =
+  | { type: "LOADING" }
+  | { type: "SUCCESS"; data: InsightsData }
+  | { type: "ERROR"; error: string };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "LOADING":
+      return { data: state.data, loading: true, error: null };
+    case "SUCCESS":
+      return { data: action.data, loading: false, error: null };
+    case "ERROR":
+      return { ...state, loading: false, error: action.error };
+  }
+}
+
 export function useInsights(window: number) {
-  const [data, setData] = useState<InsightsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [{ data, loading, error }, dispatch] = useReducer(reducer, {
+    data: null,
+    loading: true,
+    error: null,
+  });
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    dispatch({ type: "LOADING" });
 
     Promise.all([
       fetchInsightsSummary(window),
@@ -37,16 +60,19 @@ export function useInsights(window: number) {
     ])
       .then(([summary, trend, agentsTrend, topCves]) => {
         if (!cancelled) {
-          setData({ summary, trend, agentsTrend, topCves });
-          setLoading(false);
+          dispatch({
+            type: "SUCCESS",
+            data: { summary, trend, agentsTrend, topCves },
+          });
         }
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to load insights",
-          );
-          setLoading(false);
+          dispatch({
+            type: "ERROR",
+            error:
+              err instanceof Error ? err.message : "Failed to load insights",
+          });
         }
       });
 

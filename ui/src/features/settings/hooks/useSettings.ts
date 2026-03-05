@@ -1,30 +1,53 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import { fetchSettings } from "@/lib/api/settings";
 import type { SettingsResponse } from "@/lib/api/types";
 
+type State = {
+  data: SettingsResponse | null;
+  loading: boolean;
+  error: string | null;
+};
+
+type Action =
+  | { type: "LOADING" }
+  | { type: "SUCCESS"; data: SettingsResponse }
+  | { type: "ERROR"; error: string };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "LOADING":
+      return { ...state, loading: true, error: null };
+    case "SUCCESS":
+      return { data: action.data, loading: false, error: null };
+    case "ERROR":
+      return { ...state, loading: false, error: action.error };
+  }
+}
+
 export function useSettings() {
-  const [data, setData] = useState<SettingsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [{ data, loading, error }, dispatch] = useReducer(reducer, {
+    data: null,
+    loading: true,
+    error: null,
+  });
 
   const load = useCallback(() => {
     let cancelled = false;
-    setLoading(true);
+    dispatch({ type: "LOADING" });
 
     fetchSettings()
       .then((res) => {
         if (!cancelled) {
-          setData(res);
-          setError(null);
-          setLoading(false);
+          dispatch({ type: "SUCCESS", data: res });
         }
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to load settings",
-          );
-          setLoading(false);
+          dispatch({
+            type: "ERROR",
+            error:
+              err instanceof Error ? err.message : "Failed to load settings",
+          });
         }
       });
 
