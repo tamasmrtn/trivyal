@@ -144,13 +144,13 @@ jobs:
       - uses: aquasecurity/trivy-action@0.34.2
         with:
           image-ref: trivyal-hub:scan
-          format: table
+          format: sarif
           output: trivy-hub.txt
           hide-progress: true
           scanners: vuln
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: "0"
+          exit-code: "1"
       - name: Show Trivy output (debug)
         if: always()
         run: |
