@@ -63,4 +63,4 @@ repos:
     rev: 3.2.506
     hooks:
       - id: checkov
-        files: ^(hub/Dockerfile|agent/Dockerfile|docker-compose.*\.yml|\.github/workflows/.*\.yml)$
+        files: ^(hub/Dockerfile|agent/Dockerfile|(integration/)?docker-compose.*\.yml|\.github/workflows/.*\.yml)$
