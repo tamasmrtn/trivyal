@@ -144,15 +144,24 @@ jobs:
       - uses: aquasecurity/trivy-action@0.34.2
         with:
           image-ref: trivyal-hub:scan
-          format: sarif
-          output: trivy-hub.sarif
+          format: table
+          output: trivy-hub.txt
+          hide-progress: true
+          scanners: vuln
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: "1"
-      - uses: github/codeql-action/upload-sarif@v4
+      - name: Append Trivy table to job summary (hub)
         if: always()
-        with:
-          sarif_file: trivy-hub.sarif
+        run: |
+          if [ -s trivy-hub.txt ]; then
+            echo "### Trivy scan — hub image" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat trivy-hub.txt >> $GITHUB_STEP_SUMMARY || true
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Trivy produced no table output for hub" >> $GITHUB_STEP_SUMMARY
+          fi
 
   scan-agent:
     name: Scan agent image (Trivy)
@@ -174,12 +183,21 @@ jobs:
       - uses: aquasecurity/trivy-action@0.34.2
         with:
           image-ref: trivyal-agent:scan
-          format: sarif
-          output: trivy-agent.sarif
+          format: table
+          output: trivy-agent.txt
+          hide-progress: true
+          scanners: vuln
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: "1"
-      - uses: github/codeql-action/upload-sarif@v4
+      - name: Append Trivy table to job summary (agent)
         if: always()
-        with:
-          sarif_file: trivy-agent.sarif
+        run: |
+          if [ -s trivy-agent.txt ]; then
+            echo "### Trivy scan — agent image" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat trivy-agent.txt >> $GITHUB_STEP_SUMMARY || true
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Trivy produced no table output for agent" >> $GITHUB_STEP_SUMMARY
+          fi

@@ -49,15 +49,17 @@ function SortableHead({
   sortBy,
   sortDir,
   onSort,
+  className,
 }: {
   column: string;
   label: string;
   sortBy: string;
   sortDir: "asc" | "desc";
   onSort: (col: string) => void;
+  className?: string;
 }) {
   return (
-    <TableHead>
+    <TableHead className={className}>
       <button
         onClick={() => onSort(column)}
         className="hover:text-foreground flex items-center whitespace-nowrap"
@@ -104,8 +106,8 @@ export function FindingTable({
             sortDir={sortDir}
             onSort={onSort}
           />
-          <TableHead>Installed</TableHead>
-          <TableHead>Fixed</TableHead>
+          <TableHead className="hidden sm:table-cell">Installed</TableHead>
+          <TableHead className="hidden sm:table-cell">Fixed</TableHead>
           <SortableHead
             column="container"
             label="Container"
@@ -126,6 +128,7 @@ export function FindingTable({
             sortBy={sortBy}
             sortDir={sortDir}
             onSort={onSort}
+            className="hidden sm:table-cell"
           />
           <SortableHead
             column="first_seen"
@@ -133,6 +136,7 @@ export function FindingTable({
             sortBy={sortBy}
             sortDir={sortDir}
             onSort={onSort}
+            className="hidden sm:table-cell"
           />
           <SortableHead
             column="last_seen"
@@ -140,6 +144,7 @@ export function FindingTable({
             sortBy={sortBy}
             sortDir={sortDir}
             onSort={onSort}
+            className="hidden sm:table-cell"
           />
           <TableHead className="w-[60px]" />
         </TableRow>
@@ -156,10 +161,10 @@ export function FindingTable({
               </Link>
             </TableCell>
             <TableCell>{finding.package_name}</TableCell>
-            <TableCell className="font-mono text-xs">
+            <TableCell className="hidden font-mono text-xs sm:table-cell">
               {finding.installed_version}
             </TableCell>
-            <TableCell className="font-mono text-xs">
+            <TableCell className="hidden font-mono text-xs sm:table-cell">
               {finding.fixed_version ?? "—"}
             </TableCell>
             <TableCell className="font-mono text-xs">
@@ -168,11 +173,15 @@ export function FindingTable({
             <TableCell>
               <SeverityBadge severity={finding.severity} />
             </TableCell>
-            <TableCell>
+            <TableCell className="hidden sm:table-cell">
               <FindingStatusBadge status={finding.status} />
             </TableCell>
-            <TableCell>{formatDate(finding.first_seen)}</TableCell>
-            <TableCell>{formatDate(finding.last_seen)}</TableCell>
+            <TableCell className="hidden sm:table-cell">
+              {formatDate(finding.first_seen)}
+            </TableCell>
+            <TableCell className="hidden sm:table-cell">
+              {formatDate(finding.last_seen)}
+            </TableCell>
             <TableCell>
               {finding.status === "active" && (
                 <AcceptRiskDialog

@@ -84,7 +84,7 @@ export function FindingDetail() {
         Back to Findings
       </Link>
 
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h1 className="font-mono text-2xl font-bold">{finding.cve_id}</h1>
           <p className="text-muted-foreground mt-1 text-sm">
@@ -214,9 +214,13 @@ export function FindingDetail() {
             <TableHeader>
               <TableRow>
                 <TableHead>Reason</TableHead>
-                <TableHead>Accepted By</TableHead>
+                <TableHead className="hidden sm:table-cell">
+                  Accepted By
+                </TableHead>
                 <TableHead>Expires At</TableHead>
-                <TableHead>Created At</TableHead>
+                <TableHead className="hidden sm:table-cell">
+                  Created At
+                </TableHead>
                 <TableHead className="w-[60px]" />
               </TableRow>
             </TableHeader>
@@ -224,11 +228,15 @@ export function FindingDetail() {
               {acceptances.map((a) => (
                 <TableRow key={a.id}>
                   <TableCell>{a.reason}</TableCell>
-                  <TableCell>{a.accepted_by}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    {a.accepted_by}
+                  </TableCell>
                   <TableCell>
                     {a.expires_at ? formatDate(a.expires_at) : "—"}
                   </TableCell>
-                  <TableCell>{formatDate(a.created_at)}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    {formatDate(a.created_at)}
+                  </TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"

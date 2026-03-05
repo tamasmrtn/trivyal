@@ -50,8 +50,9 @@ COPY --from=python-builder /app/.venv /app/.venv
 # Copy the compiled UI for FastAPI to serve as static files
 COPY --from=ui-builder /ui/dist ./static
 
-# Install curl for healthcheck and gosu for privilege dropping, then create non-root user
-RUN apt-get update && apt-get install -y --no-install-recommends curl gosu && \
+# Upgrade all packages first to apply security fixes, then install runtime deps
+RUN apt-get update && apt-get upgrade -y --no-install-recommends && \
+    apt-get install -y --no-install-recommends curl gosu && \
     rm -rf /var/lib/apt/lists/* && \
     addgroup --system trivyal && \
     adduser --system --ingroup trivyal --no-create-home trivyal && \

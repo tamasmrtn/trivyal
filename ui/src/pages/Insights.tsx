@@ -52,7 +52,7 @@ export function Insights() {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Insights</h1>
         <div className="flex items-center gap-1 rounded-md border p-1">
           {WINDOWS.map(({ label, value }) => (

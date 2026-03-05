@@ -288,7 +288,7 @@ Do not use icons purely for decoration. Every icon must accompany a label or hav
 Trivyal uses minimal animation. The UI is a tool, not a product demo.
 
 - State transitions (hover, focus, active): `transition-colors duration-150` only.
-- No slide-in panels, expand/collapse animations, or skeleton loaders in the initial scope.
+- No slide-in panels, expand/collapse animations, or skeleton loaders in the initial scope. **Exception:** the mobile navigation drawer (`Sheet`) uses a left-side slide animation — this is appropriate for a mobile nav drawer and is exempt from this rule.
 - Loading states: a simple spinner or `text-muted-foreground` "Loading…" label inline with the content area.
 - Toast notifications (if introduced): appear bottom-right, auto-dismiss after 4s, no enter/exit animation beyond a 150ms opacity fade.
 

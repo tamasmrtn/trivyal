@@ -65,9 +65,9 @@ export function AgentTable({
         <TableRow>
           <TableHead>Name</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead>Hostname</TableHead>
-          <TableHead>Last Seen</TableHead>
-          <TableHead>Created</TableHead>
+          <TableHead className="hidden sm:table-cell">Hostname</TableHead>
+          <TableHead className="hidden sm:table-cell">Last Seen</TableHead>
+          <TableHead className="hidden sm:table-cell">Created</TableHead>
           <TableHead className="w-[100px]" />
         </TableRow>
       </TableHeader>
@@ -78,9 +78,13 @@ export function AgentTable({
             <TableCell>
               <StatusBadge status={agent.status} />
             </TableCell>
-            <TableCell>{formatHostname(agent.host_metadata)}</TableCell>
-            <TableCell>{formatLastSeen(agent.last_seen)}</TableCell>
-            <TableCell>
+            <TableCell className="hidden sm:table-cell">
+              {formatHostname(agent.host_metadata)}
+            </TableCell>
+            <TableCell className="hidden sm:table-cell">
+              {formatLastSeen(agent.last_seen)}
+            </TableCell>
+            <TableCell className="hidden sm:table-cell">
               {new Date(agent.created_at).toLocaleDateString()}
             </TableCell>
             <TableCell>
