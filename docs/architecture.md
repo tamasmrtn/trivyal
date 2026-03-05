@@ -285,6 +285,12 @@ DELETE /api/v1/findings/{id}/acceptances/{acceptance_id}  # revoke acceptance
 # Dashboard
 GET    /api/v1/dashboard/summary           # severity counts + agent status counts
 
+# Insights
+GET    /api/v1/insights/summary            # aggregate counts for the time window: active_findings, critical_high, new_in_period, fix_rate — ?window=<days> (7 | 30 | 90)
+GET    /api/v1/insights/trend              # daily severity breakdown + new/resolved delta — ?window=<days>
+GET    /api/v1/insights/agents/trend       # per-agent daily total findings — ?window=<days>
+GET    /api/v1/insights/top-cves           # most-widespread CVEs ranked by container/agent count — ?window=<days>
+
 # Settings
 GET    /api/v1/settings                    # current notification + schedule config
 PATCH  /api/v1/settings                    # update settings (webhooks, scan schedule)
@@ -398,17 +404,29 @@ trivyal/
 │   │   │   │   ├── hooks/
 │   │   │   │   │   └── useFindings.ts
 │   │   │   │   └── index.ts
-│   │   │   └── dashboard/
+│   │   │   ├── dashboard/
+│   │   │   │   ├── components/
+│   │   │   │   │   └── SummaryCards.tsx
+│   │   │   │   ├── hooks/
+│   │   │   │   │   └── useDashboard.ts
+│   │   │   │   └── index.ts
+│   │   │   └── insights/
 │   │   │       ├── components/
-│   │   │       │   └── SummaryCards.tsx
+│   │   │       │   ├── InsightsSummaryCards.tsx  # 4 KPI cards (active, crit+high, new, fix rate)
+│   │   │       │   ├── VulnerabilityTrendChart.tsx  # severity line chart + scan event markers
+│   │   │       │   ├── NewVsResolvedChart.tsx    # diverging bar chart (new red / resolved green)
+│   │   │       │   ├── AgentTrendChart.tsx       # per-agent trend lines (8-colour palette)
+│   │   │       │   ├── SeverityDonutChart.tsx    # donut with centre total + legend
+│   │   │       │   └── TopCvesTable.tsx          # top CVEs ranked by container/agent spread
 │   │   │       ├── hooks/
-│   │   │       │   └── useDashboard.ts
+│   │   │       │   └── useInsights.ts            # parallel fetch of all 4 insights endpoints
 │   │   │       └── index.ts
 │   │   ├── pages/                          # Route-level page components
 │   │   │   ├── Dashboard.tsx
 │   │   │   ├── Agents.tsx
 │   │   │   ├── Findings.tsx
 │   │   │   ├── FindingDetail.tsx
+│   │   │   ├── Insights.tsx
 │   │   │   ├── ScanHistory.tsx
 │   │   │   └── Settings.tsx
 │   │   ├── lib/
@@ -416,6 +434,7 @@ trivyal/
 │   │   │   │   ├── client.ts               # Axios/fetch base, auth header injection
 │   │   │   │   ├── agents.ts
 │   │   │   │   ├── findings.ts
+│   │   │   │   ├── insights.ts
 │   │   │   │   ├── scans.ts
 │   │   │   │   └── types.ts                # Shared API response types
 │   │   │   └── utils.ts
@@ -494,6 +513,7 @@ services:
 | **Dashboard** | Summary cards (total CVEs by severity), agent status grid, recent findings feed |
 | **Agents** | List of registered agents, status, last scan time, add/remove agent, copy deploy snippet |
 | **Findings** | Full findings table with filters (severity, status, agent, CVE ID, package) and sortable columns (severity, status, CVE ID, package, container, first seen, last seen); includes a **Container** column showing the originating container; bulk accept |
+| **Insights** | Time-windowed analytics (7 / 30 / 90 days): KPI summary cards (active findings, critical+high count, new this period, fix rate); severity trend line chart with scan-event markers; new-vs-resolved diverging bar chart; per-agent trend lines; severity donut chart; top CVEs table ranked by container and agent spread |
 | **Scan History** | Timeline of scans per agent/container, diff view (new / fixed per scan) |
 | **Finding Detail** | Single CVE detail — CVE description (sourced from Trivy/NVD), affected containers, fix version, NVD link, risk acceptance form |
 | **Settings** | Notification webhooks, scan schedule override, theme toggle |
