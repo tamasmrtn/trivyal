@@ -16,7 +16,7 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.4
+    rev: v0.15.5
     hooks:
       - id: ruff-check
         args: [--fix]
@@ -60,7 +60,7 @@ repos:
         additional_dependencies: ["bandit[toml]"]
 
   - repo: https://github.com/bridgecrewio/checkov.git
-    rev: 3.2.506
+    rev: 3.2.507
     hooks:
       - id: checkov
         files: ^(hub/Dockerfile|agent/Dockerfile|(integration/)?docker-compose.*\.yml|\.github/workflows/.*\.yml)$
