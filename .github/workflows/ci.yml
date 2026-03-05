@@ -123,3 +123,63 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  scan-hub:
+    name: Scan hub image (Trivy)
+    needs: [changes, build-hub]
+    if: needs.changes.outputs.hub == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: hub/Dockerfile
+          load: true
+          tags: trivyal-hub:scan
+          cache-from: type=gha
+      - uses: aquasecurity/trivy-action@0.34.2
+        with:
+          image-ref: trivyal-hub:scan
+          format: sarif
+          output: trivy-hub.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-hub.sarif
+
+  scan-agent:
+    name: Scan agent image (Trivy)
+    needs: [changes, build-agent]
+    if: needs.changes.outputs.agent == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: agent/Dockerfile
+          load: true
+          tags: trivyal-agent:scan
+          cache-from: type=gha
+      - uses: aquasecurity/trivy-action@0.34.2
+        with:
+          image-ref: trivyal-agent:scan
+          format: sarif
+          output: trivy-agent.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-agent.sarif
