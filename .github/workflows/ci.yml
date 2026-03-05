@@ -15,20 +15,31 @@ jobs:
         with:
           python-version: "3.14"
       - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/uv.lock"
       - uses: actions/setup-node@v6
         with:
           node-version: "24"
           cache: npm
           cache-dependency-path: ui/package-lock.json
       - run: npm ci --prefix ui
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
       - uses: pre-commit/action@v3.0.1
 
   test-hub:
     name: Test hub
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "hub/uv.lock"
       - run: uv sync
         working-directory: hub
       - run: uv run pytest tests/ -vv
@@ -36,10 +47,14 @@ jobs:
 
   test-agent:
     name: Test agent
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "agent/uv.lock"
       - run: uv sync
         working-directory: agent
       - run: uv run pytest tests/ -vv
@@ -47,6 +62,7 @@ jobs:
 
   test-ui:
     name: Test UI
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -59,3 +75,33 @@ jobs:
         working-directory: ui
       - run: npm run test:run
         working-directory: ui
+
+  build-hub:
+    name: Build hub image
+    needs: [test-hub, test-ui]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: hub/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-agent:
+    name: Build agent image
+    needs: test-agent
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: agent/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
