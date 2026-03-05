@@ -144,23 +144,15 @@ jobs:
       - uses: aquasecurity/trivy-action@0.34.2
         with:
           image-ref: trivyal-hub:scan
-          format: table
-          output: trivy-hub.txt
-          hide-progress: true
-          scanners: vuln
+          format: sarif
+          output: trivy-hub.sarif
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: "0"
-      - name: Show Trivy output (debug)
+          exit-code: "1"
+      - uses: github/codeql-action/upload-sarif@v4
         if: always()
-        run: |
-          if [ -f trivy-hub.txt ]; then
-            echo "---- Trivy table output ----"
-            sed -n '1,200p' trivy-hub.txt || true
-            echo "---- end Trivy output ----"
-          else
-            echo "No trivy-hub.txt produced"
-          fi
+        with:
+          sarif_file: trivy-hub.sarif
 
   scan-agent:
     name: Scan agent image (Trivy)
