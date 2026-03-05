@@ -46,9 +46,15 @@ export function ScanTable({ scans }: ScanTableProps) {
             <TableHead>Container</TableHead>
             <TableHead className="text-center">Critical</TableHead>
             <TableHead className="text-center">High</TableHead>
-            <TableHead className="text-center">Medium</TableHead>
-            <TableHead className="text-center">Low</TableHead>
-            <TableHead className="text-center">Unknown</TableHead>
+            <TableHead className="hidden text-center sm:table-cell">
+              Medium
+            </TableHead>
+            <TableHead className="hidden text-center sm:table-cell">
+              Low
+            </TableHead>
+            <TableHead className="hidden text-center sm:table-cell">
+              Unknown
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -77,13 +83,13 @@ export function ScanTable({ scans }: ScanTableProps) {
               <TableCell className="text-center">
                 <Count value={scan.high_count} className="text-orange-600" />
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="hidden text-center sm:table-cell">
                 <Count value={scan.medium_count} className="text-amber-600" />
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="hidden text-center sm:table-cell">
                 <Count value={scan.low_count} className="text-blue-600" />
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="hidden text-center sm:table-cell">
                 <Count
                   value={scan.unknown_count}
                   className="text-muted-foreground"
