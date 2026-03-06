@@ -13,3 +13,9 @@ services:
       TRIVYAL_TOKEN: "${AGENT_TOKEN}"
       TRIVYAL_KEY: "${AGENT_HUB_KEY}"
       TRIVYAL_SCAN_SCHEDULE: "${TRIVYAL_SCAN_SCHEDULE:-0 2 * * *}"
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c", "import trivyal_agent"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

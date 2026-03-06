@@ -19,17 +19,26 @@ interface AddAgentDialogProps {
 }
 
 function buildDockerCompose(token: string, hubPublicKey: string): string {
-  return `services:
+  return `name: trivyal-agent
+services:
   trivyal-agent:
-    image: trivyal/agent:latest
+    image: ghcr.io/tamasmrtn/trivyal-agent:latest
+    restart: unless-stopped
     network_mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./agent_data:/app/data
+      - ./data:/app/data
     environment:
-      HUB_URL: "ws://<HUB_HOST>:8099"
-      TOKEN: "${token}"
-      KEY: "${hubPublicKey}"`;
+      TRIVYAL_HUB_URL: "ws://<HUB_HOST>:8099"
+      TRIVYAL_TOKEN: "${token}"
+      TRIVYAL_KEY: "${hubPublicKey}"
+      TRIVYAL_SCAN_SCHEDULE: "0 2 * * *"
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c", "import trivyal_agent"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 15s`;
 }
 
 export function AddAgentDialog({ onCreated }: AddAgentDialogProps) {

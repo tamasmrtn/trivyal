@@ -16,7 +16,7 @@ services:
     tmpfs:
       - /tmp/trivyal-test    # ephemeral SQLite DB — wiped on every compose run
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8099/api/health"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8099/api/health || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 18
