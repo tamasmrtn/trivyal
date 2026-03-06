@@ -64,8 +64,22 @@ dev-ui:
 
 scan-hub:
 	docker build -t trivyal-hub:scan -f hub/Dockerfile .
-	trivy image --severity CRITICAL,HIGH --ignore-unfixed trivyal-hub:scan
+	docker run --rm \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
+	  -v "$(PWD)/.trivyignore":/.trivyignore \
+	  aquasec/trivy:latest image \
+	  --ignorefile /.trivyignore \
+	  --severity CRITICAL,HIGH \
+	  --ignore-unfixed \
+	  trivyal-hub:scan
 
 scan-agent:
 	docker build -t trivyal-agent:scan -f agent/Dockerfile .
-	trivy image --severity CRITICAL,HIGH --ignore-unfixed trivyal-agent:scan
+	docker run --rm \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
+	  -v "$(PWD)/.trivyignore":/.trivyignore \
+	  aquasec/trivy:latest image \
+	  --ignorefile /.trivyignore \
+	  --severity CRITICAL,HIGH \
+	  --ignore-unfixed \
+	  trivyal-agent:scan
