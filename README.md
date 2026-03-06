@@ -79,7 +79,7 @@ Trivyal uses a hub-agent model. The hub is the central server that aggregates sc
 | Layer | Choice |
 |---|---|
 | Hub backend | Python 3.14 + FastAPI |
-| Hub database | SQLite via SQLModel |
+| Hub database | SQLite via SQLModel + Alembic |
 | Hub frontend | React + shadcn/ui + Tailwind CSS |
 | Agent | Python 3.14 |
 | Package management | uv |

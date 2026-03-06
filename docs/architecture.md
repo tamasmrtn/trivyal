@@ -143,7 +143,7 @@ The trigger is fire-and-forget from the REST perspective: the `202 Accepted` res
 | Layer | Choice | Reason |
 |---|---|---|
 | **Hub backend** | Python 3.14 + FastAPI | Async, lightweight, great WebSocket support |
-| **Hub database** | SQLite via SQLModel | Zero-config, sufficient for homelab scale |
+| **Hub database** | SQLite via SQLModel + Alembic | Zero-config, sufficient for homelab scale; Alembic runs migrations automatically at startup |
 | **Hub frontend** | React + shadcn/ui + Tailwind CSS | Excellent built-in dark mode, same UI library family Beszel uses (shadcn-svelte), polished components |
 | **Agent** | Python 3.14 | Matches hub, easy to containerise, simple Docker SDK |
 | **Package management** | uv | Fast, reliable Python package and project manager; replaces pip + venv; lockfile-based reproducible installs |
@@ -311,6 +311,7 @@ The React frontend follows a feature-based organisation: shared primitives live 
 trivyal/
 │
 ├── hub/                                    # Hub service (uv project)
+│   ├── alembic.ini                         # Alembic config (developer CLI)
 │   ├── src/
 │   │   └── trivyal_hub/
 │   │       ├── __init__.py
@@ -332,7 +333,8 @@ trivyal/
 │   │       ├── db/
 │   │       │   ├── models.py               # SQLModel table definitions
 │   │       │   ├── session.py              # Async engine + session factory
-│   │       │   └── migrations/             # Alembic migration scripts
+│   │       │   └── migrations/             # Alembic env.py + revision scripts
+│   │       │       └── versions/           # Migration files (0001_initial_schema.py, …)
 │   │       ├── schemas/                    # Pydantic request/response models
 │   │       │   ├── agents.py
 │   │       │   ├── findings.py
