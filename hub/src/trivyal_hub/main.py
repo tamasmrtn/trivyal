@@ -9,13 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from trivyal_hub.api.v1 import router as v1_router
 from trivyal_hub.config import settings
-from trivyal_hub.db.session import create_tables, engine, get_hub_settings, get_session
+from trivyal_hub.db.session import engine, get_hub_settings, get_session, run_migrations
 from trivyal_hub.ws.manager import manager
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await create_tables()
+    await run_migrations()
     async with AsyncSession(engine, expire_on_commit=False) as session:
         await get_hub_settings(session)
     yield
