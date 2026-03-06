@@ -13,27 +13,8 @@ services:
       TRIVYAL_DATA_DIR: /app/data
       # TRIVYAL_ADMIN_PASSWORD: "changeme"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8099/api/health"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8099/api/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
-
-  # Optional: run an agent on the hub host itself to monitor it too
-  # trivyal-agent:
-  #   image: ghcr.io/tamasmrtn/trivyal-agent:latest
-  #   restart: unless-stopped
-  #   network_mode: host          # gives the agent access to other local containers' metadata
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock:ro
-  #     - ./agent/data:/app/data
-  #   group_add:
-  #     - "${DOCKER_GID:-999}"    # match host Docker socket GID; set DOCKER_GID in .env
-  #   environment:
-  #     TRIVYAL_HUB_URL: "ws://localhost:8099"
-  #     TRIVYAL_TOKEN: "${AGENT_TOKEN}"       # generated in the Trivyal UI
-  #     TRIVYAL_KEY: "${AGENT_HUB_KEY}"       # hub public key shown in the Trivyal UI
-  #     TRIVYAL_SCAN_SCHEDULE: "0 2 * * *"   # cron — default nightly at 02:00
-  #   depends_on:
-  #     trivyal-hub:
-  #       condition: service_healthy

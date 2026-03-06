@@ -15,7 +15,7 @@ RUN npm run build
 
 
 # ── Stage 2: Install Python dependencies ─────────────────────────────────────
-FROM python:3.14-slim AS python-builder
+FROM python:3.14-alpine AS python-builder
 
 # uv is a build tool — it belongs here, not in the runtime image
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
@@ -35,7 +35,7 @@ RUN uv sync --frozen --no-dev --no-editable
 
 
 # ── Stage 3: Runtime ─────────────────────────────────────────────────────────
-FROM python:3.14-slim AS hub
+FROM python:3.14-alpine AS hub
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -50,12 +50,9 @@ COPY --from=python-builder /app/.venv /app/.venv
 # Copy the compiled UI for FastAPI to serve as static files
 COPY --from=ui-builder /ui/dist ./static
 
-# Upgrade all packages first to apply security fixes, then install runtime deps
-RUN apt-get update && apt-get upgrade -y --no-install-recommends && \
-    apt-get install -y --no-install-recommends curl gosu && \
-    rm -rf /var/lib/apt/lists/* && \
-    addgroup --system trivyal && \
-    adduser --system --ingroup trivyal --no-create-home trivyal && \
+RUN apk add --no-cache su-exec && \
+    addgroup -S trivyal && \
+    adduser -S -G trivyal -H trivyal && \
     mkdir -p /app/data && \
     chown -R trivyal:trivyal /app/data
 
@@ -65,7 +62,7 @@ RUN chmod +x /entrypoint.sh
 EXPOSE 8099
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8099/api/health
+    CMD wget -qO- http://localhost:8099/api/health || exit 1
 
 # Entrypoint runs as root to fix bind-mount ownership, then drops to trivyal
 ENTRYPOINT ["/entrypoint.sh"]

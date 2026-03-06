@@ -1,6 +1,7 @@
 .PHONY: init init-hub init-agent init-ui init-hooks init-integration \
         test test-hub test-agent test-ui test-integration \
-        dev-hub dev-agent dev-ui lint
+        dev-hub dev-agent dev-ui lint \
+        scan-hub scan-agent
 
 # ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -58,3 +59,27 @@ dev-agent:
 
 dev-ui:
 	cd ui && npm run dev
+
+# ── Scan ──────────────────────────────────────────────────────────────────────
+
+scan-hub:
+	docker build -t trivyal-hub:scan -f hub/Dockerfile .
+	docker run --rm \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
+	  -v "$(PWD)/.trivyignore":/.trivyignore \
+	  aquasec/trivy:latest image \
+	  --ignorefile /.trivyignore \
+	  --severity CRITICAL,HIGH \
+	  --ignore-unfixed \
+	  trivyal-hub:scan
+
+scan-agent:
+	docker build -t trivyal-agent:scan -f agent/Dockerfile .
+	docker run --rm \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
+	  -v "$(PWD)/.trivyignore":/.trivyignore \
+	  aquasec/trivy:latest image \
+	  --ignorefile /.trivyignore \
+	  --severity CRITICAL,HIGH \
+	  --ignore-unfixed \
+	  trivyal-agent:scan

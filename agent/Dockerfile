@@ -6,7 +6,7 @@ FROM aquasec/trivy:latest AS trivy-source
 
 
 # ── Stage 2: Install Python dependencies ─────────────────────────────────────
-FROM python:3.14-slim AS python-builder
+FROM python:3.14-alpine AS python-builder
 
 # uv is a build tool — it belongs here, not in the runtime image
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
@@ -21,7 +21,7 @@ RUN uv sync --frozen --no-dev --no-editable
 
 
 # ── Stage 3: Runtime ─────────────────────────────────────────────────────────
-FROM python:3.14-slim AS agent
+FROM python:3.14-alpine AS agent
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -38,10 +38,9 @@ COPY --from=python-builder /app/.venv /app/.venv
 
 # Create non-root group that matches the host Docker socket GID at runtime.
 # Default 999 covers most Debian/Ubuntu hosts; override via group_add in compose.
-RUN apt-get update && apt-get install -y --no-install-recommends gosu && \
-    rm -rf /var/lib/apt/lists/* && \
-    addgroup --system trivyal && \
-    adduser --system --ingroup trivyal --no-create-home trivyal && \
+RUN apk add --no-cache su-exec && \
+    addgroup -S trivyal && \
+    adduser -S -G trivyal -H trivyal && \
     mkdir -p /app/data && \
     chown -R trivyal:trivyal /app/data
 
@@ -49,7 +48,7 @@ COPY agent/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 HEALTHCHECK --interval=60s --timeout=5s --start-period=15s --retries=3 \
-    CMD /app/.venv/bin/python -c "import trivyal_agent" || exit 1
+    CMD wget -qO- http://localhost:8100/health || exit 1
 
 # Entrypoint runs as root to fix bind-mount ownership, then drops to trivyal
 ENTRYPOINT ["/entrypoint.sh"]
