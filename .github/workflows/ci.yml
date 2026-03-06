@@ -92,41 +92,9 @@ jobs:
       - run: npm run test:run
         working-directory: ui
 
-  build-hub:
-    name: Build hub image
-    needs: [changes, test-hub, test-ui]
-    if: needs.changes.outputs.hub == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: docker/setup-buildx-action@v4
-      - uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: hub/Dockerfile
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  build-agent:
-    name: Build agent image
-    needs: [changes, test-agent]
-    if: needs.changes.outputs.agent == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: docker/setup-buildx-action@v4
-      - uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: agent/Dockerfile
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
   scan-hub:
-    name: Scan hub image (Trivy)
-    needs: [changes, build-hub]
+    name: Build and scan hub image (Trivy)
+    needs: [changes, test-hub, test-ui]
     if: needs.changes.outputs.hub == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -164,8 +132,8 @@ jobs:
           fi
 
   scan-agent:
-    name: Scan agent image (Trivy)
-    needs: [changes, build-agent]
+    name: Build and scan agent image (Trivy)
+    needs: [changes, test-agent]
     if: needs.changes.outputs.agent == 'true'
     runs-on: ubuntu-latest
     permissions:
