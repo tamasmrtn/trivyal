@@ -29,6 +29,9 @@ jobs:
           chmod +x scripts/bump-version.sh
           ./scripts/bump-version.sh ${{ inputs.version }}
 
+      - name: Install pre-commit
+        run: pip install pre-commit
+
       - name: Commit and push release branch
         run: |
           git config user.name "github-actions[bot]"
