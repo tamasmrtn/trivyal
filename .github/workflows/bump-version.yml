@@ -34,6 +34,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b chore/release-v${{ inputs.version }}
+          pre-commit run --all-files
           git add hub/pyproject.toml agent/pyproject.toml integration/pyproject.toml ui/package.json
           git commit -m "chore: release v${{ inputs.version }}"
           git push origin chore/release-v${{ inputs.version }}
