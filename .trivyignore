@@ -1,0 +1,4 @@
+# CVE-2025-15558 — HIGH severity in github.com/docker/cli embedded in the Trivy binary.
+# This is a Windows-only vulnerability (named pipe path traversal).
+# Not applicable to Linux containers.
+CVE-2025-15558
