@@ -34,7 +34,7 @@ services:
       TRIVYAL_KEY: "${hubPublicKey}"
       TRIVYAL_SCAN_SCHEDULE: "0 2 * * *"
     healthcheck:
-      test: ["CMD", "/app/.venv/bin/python", "-c", "import trivyal_agent"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8100/health || exit 1"]
       interval: 60s
       timeout: 5s
       retries: 3

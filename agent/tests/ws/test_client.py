@@ -2,11 +2,12 @@
 
 import json
 from base64 import b64encode
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from nacl.signing import SigningKey
 from trivyal_agent.config import Settings
+from trivyal_agent.health import HealthServer
 from trivyal_agent.ws.client import AgentClient, AuthError
 
 
@@ -102,6 +103,25 @@ class TestAgentClientHandshake:
 
         metadata_msg = next(m for m in sent_messages if m["type"] == "host_metadata")
         assert metadata_msg["metadata"]["hostname"] == "testhost"
+
+    async def test_handshake_sets_health_connected(self, tmp_path):
+        signing_key = SigningKey.generate()
+        pub_b64 = b64encode(signing_key.verify_key.encode()).decode()
+        settings = _make_settings(key=pub_b64, data_dir=str(tmp_path))
+        health = MagicMock(spec=HealthServer)
+        client = AgentClient(settings, health=health)
+
+        challenge_msg = _make_challenge_message(signing_key)
+        mock_ws = AsyncMock()
+        mock_ws.recv = AsyncMock(return_value=challenge_msg)
+
+        with (
+            patch("trivyal_agent.ws.client.collect_host_metadata", return_value={}),
+            patch("trivyal_agent.ws.client.list_cached", return_value=[]),
+        ):
+            await client._handshake(mock_ws)
+
+        health.set_connected.assert_called_once_with(True)
 
 
 class TestAgentClientScanCycle:

@@ -48,7 +48,7 @@ COPY agent/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 HEALTHCHECK --interval=60s --timeout=5s --start-period=15s --retries=3 \
-    CMD /app/.venv/bin/python -c "import trivyal_agent" || exit 1
+    CMD wget -qO- http://localhost:8100/health || exit 1
 
 # Entrypoint runs as root to fix bind-mount ownership, then drops to trivyal
 ENTRYPOINT ["/entrypoint.sh"]
