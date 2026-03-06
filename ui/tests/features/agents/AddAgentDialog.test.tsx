@@ -61,7 +61,7 @@ describe("AddAgentDialog", () => {
     expect(await screen.findByText("Agent Registered")).toBeInTheDocument();
     expect(screen.getByText("test-token-123")).toBeInTheDocument();
     expect(screen.getByText("test-pubkey-456")).toBeInTheDocument();
-    expect(screen.getByText(/trivyal\/agent:latest/)).toBeInTheDocument();
+    expect(screen.getByText(/trivyal-agent:latest/)).toBeInTheDocument();
   });
 
   it("shows error message on API failure", async () => {
