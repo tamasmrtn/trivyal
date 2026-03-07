@@ -101,10 +101,10 @@ export function NewVsResolvedChart({ days }: Props) {
             <Tooltip
               contentStyle={tooltipContentStyle}
               labelFormatter={(label: unknown) => formatDate(label as string)}
-              formatter={(
-                value: number | undefined,
-                name: string | undefined,
-              ) => [Math.abs(value ?? 0), name === "new" ? "New" : "Resolved"]}
+              formatter={(value, name) => [
+                Math.abs(Number(value) || 0),
+                name === "new" ? "New" : "Resolved",
+              ]}
             />
             <Bar dataKey="new" name="new" radius={[2, 2, 0, 0]}>
               {chartData.map((_, i) => (
