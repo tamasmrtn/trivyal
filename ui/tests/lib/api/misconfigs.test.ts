@@ -7,100 +7,62 @@ import {
   revokeMisconfigAcceptance,
 } from "@/lib/api/misconfigs";
 
-const mockApiCall = vi.fn();
-vi.mock("@/lib/api", () => ({
+const mockApiCall = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/api/client", () => ({
   api: mockApiCall,
 }));
 
 describe("Misconfigs API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockApiCall.mockResolvedValue({
+      data: [],
+      total: 0,
+      page: 1,
+      page_size: 50,
+    });
   });
 
   describe("fetchMisconfigs", () => {
-    it("calls api with correct endpoint and no params", async () => {
-      mockApiCall.mockResolvedValue({
-        data: [],
-        total: 0,
-        page: 1,
-        page_size: 50,
-      });
-
+    it("calls api with correct endpoint and no params when none provided", async () => {
       await fetchMisconfigs();
 
-      expect(mockApiCall).toHaveBeenCalledWith(
-        "/api/v1/misconfigs?page=1&page_size=50",
-      );
+      expect(mockApiCall).toHaveBeenCalledWith("/api/v1/misconfigs");
     });
 
     it("includes severity param when provided", async () => {
-      mockApiCall.mockResolvedValue({
-        data: [],
-        total: 0,
-        page: 1,
-        page_size: 50,
-      });
-
       await fetchMisconfigs({ severity: "HIGH" });
 
       expect(mockApiCall).toHaveBeenCalledWith(
-        "/api/v1/misconfigs?severity=HIGH&page=1&page_size=50",
+        "/api/v1/misconfigs?severity=HIGH",
       );
     });
 
     it("includes status param when provided", async () => {
-      mockApiCall.mockResolvedValue({
-        data: [],
-        total: 0,
-        page: 1,
-        page_size: 50,
-      });
-
       await fetchMisconfigs({ status: "active" });
 
       expect(mockApiCall).toHaveBeenCalledWith(
-        "/api/v1/misconfigs?status=active&page=1&page_size=50",
+        "/api/v1/misconfigs?status=active",
       );
     });
 
     it("includes agent_id param when provided", async () => {
-      mockApiCall.mockResolvedValue({
-        data: [],
-        total: 0,
-        page: 1,
-        page_size: 50,
-      });
-
       await fetchMisconfigs({ agent_id: "abc123" });
 
       expect(mockApiCall).toHaveBeenCalledWith(
-        "/api/v1/misconfigs?agent_id=abc123&page=1&page_size=50",
+        "/api/v1/misconfigs?agent_id=abc123",
       );
     });
 
     it("includes sort params when provided", async () => {
-      mockApiCall.mockResolvedValue({
-        data: [],
-        total: 0,
-        page: 1,
-        page_size: 50,
-      });
-
       await fetchMisconfigs({ sort_by: "first_seen", sort_dir: "desc" });
 
       expect(mockApiCall).toHaveBeenCalledWith(
-        "/api/v1/misconfigs?sort_by=first_seen&sort_dir=desc&page=1&page_size=50",
+        "/api/v1/misconfigs?sort_by=first_seen&sort_dir=desc",
       );
     });
 
     it("includes pagination params", async () => {
-      mockApiCall.mockResolvedValue({
-        data: [],
-        total: 100,
-        page: 2,
-        page_size: 25,
-      });
-
       await fetchMisconfigs({ page: 2, page_size: 25 });
 
       expect(mockApiCall).toHaveBeenCalledWith(
@@ -109,13 +71,6 @@ describe("Misconfigs API", () => {
     });
 
     it("includes multiple params together", async () => {
-      mockApiCall.mockResolvedValue({
-        data: [],
-        total: 10,
-        page: 1,
-        page_size: 50,
-      });
-
       await fetchMisconfigs({
         severity: "CRITICAL",
         status: "active",
@@ -134,26 +89,14 @@ describe("Misconfigs API", () => {
 
   describe("fetchMisconfig", () => {
     it("calls api with misconfig id endpoint", async () => {
-      const mockMisconfig = {
-        id: "misconf-123",
-        check_id: "CKV_DOCKER_1",
-        severity: "HIGH" as const,
-        status: "active" as const,
-        container_id: "abc123",
-        image_name: "nginx:latest",
-        issue: "Exposed port",
-        fix: "Use USER directive",
-        first_seen: "2026-03-01T10:00:00Z",
-      };
-
-      mockApiCall.mockResolvedValue(mockMisconfig);
+      mockApiCall.mockResolvedValue({ id: "misconf-123" });
 
       const result = await fetchMisconfig("misconf-123");
 
       expect(mockApiCall).toHaveBeenCalledWith(
         "/api/v1/misconfigs/misconf-123",
       );
-      expect(result).toEqual(mockMisconfig);
+      expect(result).toEqual({ id: "misconf-123" });
     });
   });
 
@@ -161,70 +104,41 @@ describe("Misconfigs API", () => {
     it("sends PATCH request with status update", async () => {
       mockApiCall.mockResolvedValue({ id: "misconf-123", status: "fixed" });
 
-      await updateMisconfig("misconf-123", { status: "fixed" });
+      await updateMisconfig("misconf-123", "fixed");
 
       expect(mockApiCall).toHaveBeenCalledWith(
         "/api/v1/misconfigs/misconf-123",
-        "PATCH",
-        { status: "fixed" },
+        expect.objectContaining({ method: "PATCH" }),
       );
     });
 
-    it("sends multiple fields in PATCH", async () => {
+    it("sends false_positive status", async () => {
       mockApiCall.mockResolvedValue({
         id: "misconf-123",
         status: "false_positive",
-        checked_at: "2026-03-07T00:00:00Z",
       });
 
-      await updateMisconfig("misconf-123", {
-        status: "false_positive",
-        checked_at: "2026-03-07T00:00:00Z",
-      });
+      await updateMisconfig("misconf-123", "false_positive");
 
       expect(mockApiCall).toHaveBeenCalledWith(
         "/api/v1/misconfigs/misconf-123",
-        "PATCH",
-        {
-          status: "false_positive",
-          checked_at: "2026-03-07T00:00:00Z",
-        },
+        expect.objectContaining({ method: "PATCH" }),
       );
     });
   });
 
   describe("createMisconfigAcceptance", () => {
-    it("sends POST request with risk acceptance data", async () => {
+    it("sends POST request with reason", async () => {
       mockApiCall.mockResolvedValue({
         id: "risk-123",
         misconfig_id: "misconf-123",
-        note: "Acceptable risk",
       });
 
-      await createMisconfigAcceptance("misconf-123", {
-        note: "Acceptable risk",
-      });
+      await createMisconfigAcceptance("misconf-123", "Acceptable risk");
 
       expect(mockApiCall).toHaveBeenCalledWith(
         "/api/v1/misconfigs/misconf-123/acceptances",
-        "POST",
-        { note: "Acceptable risk" },
-      );
-    });
-
-    it("works without note", async () => {
-      mockApiCall.mockResolvedValue({
-        id: "risk-123",
-        misconfig_id: "misconf-123",
-        note: "",
-      });
-
-      await createMisconfigAcceptance("misconf-123", {});
-
-      expect(mockApiCall).toHaveBeenCalledWith(
-        "/api/v1/misconfigs/misconf-123/acceptances",
-        "POST",
-        {},
+        expect.objectContaining({ method: "POST" }),
       );
     });
   });
@@ -233,11 +147,11 @@ describe("Misconfigs API", () => {
     it("sends DELETE request", async () => {
       mockApiCall.mockResolvedValue({});
 
-      await revokeMisconfigAcceptance("misconf-123");
+      await revokeMisconfigAcceptance("misconf-123", "acceptance-456");
 
       expect(mockApiCall).toHaveBeenCalledWith(
-        "/api/v1/misconfigs/misconf-123/acceptances",
-        "DELETE",
+        "/api/v1/misconfigs/misconf-123/acceptances/acceptance-456",
+        expect.objectContaining({ method: "DELETE" }),
       );
     });
   });

@@ -89,5 +89,5 @@ export function useImages(options?: UseImagesOptions) {
     return load();
   }, [load]);
 
-  return { data, total, loading, error };
+  return { data, total, loading, error, refetch: load };
 }

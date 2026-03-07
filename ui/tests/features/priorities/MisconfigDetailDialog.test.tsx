@@ -13,16 +13,18 @@ import {
   createMisconfigAcceptance,
 } from "@/lib/api/misconfigs";
 
-const mockMisconfig = {
+const mockFinding = {
   id: "misconf-123",
   check_id: "CKV_DOCKER_1",
   severity: "HIGH" as const,
   status: "active" as const,
   container_id: "abc123",
+  container_name: "my-nginx",
   image_name: "nginx:latest",
-  issue: "Exposed port",
-  fix: "Use USER directive",
+  title: "Exposed port",
+  fix_guideline: "Use USER directive",
   first_seen: "2026-03-01T10:00:00Z",
+  last_seen: "2026-03-07T10:00:00Z",
 };
 
 describe("MisconfigDetailDialog", () => {
@@ -33,10 +35,10 @@ describe("MisconfigDetailDialog", () => {
   it("renders dialog header with check id", () => {
     render(
       <MisconfigDetailDialog
-        isOpen={true}
-        misconfig={mockMisconfig}
-        onClose={vi.fn()}
-        onAction={vi.fn()}
+        open={true}
+        finding={mockFinding}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
       />,
     );
 
@@ -46,10 +48,10 @@ describe("MisconfigDetailDialog", () => {
   it("displays misconfig details", () => {
     render(
       <MisconfigDetailDialog
-        isOpen={true}
-        misconfig={mockMisconfig}
-        onClose={vi.fn()}
-        onAction={vi.fn()}
+        open={true}
+        finding={mockFinding}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
       />,
     );
 
@@ -61,10 +63,10 @@ describe("MisconfigDetailDialog", () => {
   it("displays status badge", () => {
     render(
       <MisconfigDetailDialog
-        isOpen={true}
-        misconfig={mockMisconfig}
-        onClose={vi.fn()}
-        onAction={vi.fn()}
+        open={true}
+        finding={mockFinding}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
       />,
     );
 
@@ -74,10 +76,10 @@ describe("MisconfigDetailDialog", () => {
   it("renders Accept Risk button", () => {
     render(
       <MisconfigDetailDialog
-        isOpen={true}
-        misconfig={mockMisconfig}
-        onClose={vi.fn()}
-        onAction={vi.fn()}
+        open={true}
+        finding={mockFinding}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
       />,
     );
 
@@ -89,10 +91,10 @@ describe("MisconfigDetailDialog", () => {
   it("renders Mark False Positive button", () => {
     render(
       <MisconfigDetailDialog
-        isOpen={true}
-        misconfig={mockMisconfig}
-        onClose={vi.fn()}
-        onAction={vi.fn()}
+        open={true}
+        finding={mockFinding}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
       />,
     );
 
@@ -102,7 +104,7 @@ describe("MisconfigDetailDialog", () => {
   });
 
   it("calls createMisconfigAcceptance when Accept Risk is clicked", async () => {
-    const onAction = vi.fn();
+    const onUpdated = vi.fn();
     vi.mocked(createMisconfigAcceptance).mockResolvedValue({
       id: "risk-123",
       misconfig_id: "misconf-123",
@@ -113,23 +115,26 @@ describe("MisconfigDetailDialog", () => {
 
     render(
       <MisconfigDetailDialog
-        isOpen={true}
-        misconfig={mockMisconfig}
-        onClose={vi.fn()}
-        onAction={onAction}
+        open={true}
+        finding={mockFinding}
+        onOpenChange={vi.fn()}
+        onUpdated={onUpdated}
       />,
     );
 
     await user.click(screen.getByRole("button", { name: /accept risk/i }));
 
-    expect(createMisconfigAcceptance).toHaveBeenCalledWith("misconf-123", {});
-    expect(onAction).toHaveBeenCalled();
+    expect(createMisconfigAcceptance).toHaveBeenCalledWith(
+      "misconf-123",
+      "Accepted via Priorities",
+    );
+    expect(onUpdated).toHaveBeenCalled();
   });
 
   it("calls updateMisconfig when Mark False Positive is clicked", async () => {
-    const onAction = vi.fn();
+    const onUpdated = vi.fn();
     vi.mocked(updateMisconfig).mockResolvedValue({
-      ...mockMisconfig,
+      ...mockFinding,
       status: "false_positive",
     });
 
@@ -137,10 +142,10 @@ describe("MisconfigDetailDialog", () => {
 
     render(
       <MisconfigDetailDialog
-        isOpen={true}
-        misconfig={mockMisconfig}
-        onClose={vi.fn()}
-        onAction={onAction}
+        open={true}
+        finding={mockFinding}
+        onOpenChange={vi.fn()}
+        onUpdated={onUpdated}
       />,
     );
 
@@ -148,42 +153,42 @@ describe("MisconfigDetailDialog", () => {
       screen.getByRole("button", { name: /mark false positive/i }),
     );
 
-    expect(updateMisconfig).toHaveBeenCalledWith("misconf-123", {
-      status: "false_positive",
-    });
-    expect(onAction).toHaveBeenCalled();
+    expect(updateMisconfig).toHaveBeenCalledWith(
+      "misconf-123",
+      "false_positive",
+    );
+    expect(onUpdated).toHaveBeenCalled();
   });
 
-  it("does not render when isOpen is false", () => {
+  it("does not render when open is false", () => {
     const { container } = render(
       <MisconfigDetailDialog
-        isOpen={false}
-        misconfig={mockMisconfig}
-        onClose={vi.fn()}
-        onAction={vi.fn()}
+        open={false}
+        finding={mockFinding}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
       />,
     );
 
-    // Dialog should not be visible
     expect(container.querySelector('[role="dialog"]')).not.toBeInTheDocument();
   });
 
-  it("calls onClose when X button is clicked", async () => {
-    const onClose = vi.fn();
+  it("calls onOpenChange when close button is clicked", async () => {
+    const onOpenChange = vi.fn();
     const user = userEvent.setup();
 
     render(
       <MisconfigDetailDialog
-        isOpen={true}
-        misconfig={mockMisconfig}
-        onClose={onClose}
-        onAction={vi.fn()}
+        open={true}
+        finding={mockFinding}
+        onOpenChange={onOpenChange}
+        onUpdated={vi.fn()}
       />,
     );
 
     const closeButton = screen.getByRole("button", { name: /close/i });
     await user.click(closeButton);
 
-    expect(onClose).toHaveBeenCalled();
+    expect(onOpenChange).toHaveBeenCalled();
   });
 });

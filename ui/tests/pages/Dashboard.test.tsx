@@ -11,6 +11,20 @@ vi.mock("@/features/dashboard/hooks/useDashboard", () => ({
 import { useDashboard } from "@/features/dashboard/hooks/useDashboard";
 
 const mockDashboardData = {
+  severity_counts: {
+    critical: 1,
+    high: 2,
+    medium: 3,
+    low: 4,
+    unknown: 0,
+  },
+  agent_status_counts: {
+    online: 1,
+    offline: 0,
+    scanning: 0,
+  },
+  total_findings: 42,
+  total_agents: 1,
   misconfig: {
     total_active: 5,
   },

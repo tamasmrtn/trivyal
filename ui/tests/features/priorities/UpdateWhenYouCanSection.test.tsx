@@ -11,19 +11,22 @@ vi.mock("@/features/priorities/hooks/useImages", () => ({
 import { useImages } from "@/features/priorities/hooks/useImages";
 
 const mockImage = {
-  name: "nginx",
-  tag: "latest",
+  image_name: "nginx:latest",
+  image_tag: null,
+  image_digest: null,
+  container_count: 1,
   fixable_cves: 5,
   total_cves: 10,
-  severity_counts: {
+  severity_breakdown: {
     critical: 1,
     high: 2,
     medium: 2,
     low: 5,
+    unknown: 0,
   },
   agents: [
     {
-      agent_id: "prod-01",
+      id: "prod-01",
       name: "prod-01",
     },
   ],
@@ -118,7 +121,7 @@ describe("UpdateWhenYouCanSection", () => {
     });
 
     renderWithRouter(<UpdateWhenYouCanSection />);
-    expect(screen.getByText("1")).toBeInTheDocument(); // critical count
+    expect(screen.getByText("CRITICAL")).toBeInTheDocument();
   });
 
   it("renders agent names", () => {
@@ -197,7 +200,7 @@ describe("UpdateWhenYouCanSection", () => {
     });
 
     renderWithRouter(<UpdateWhenYouCanSection />);
-    // Check for the date part of the timestamp
-    expect(screen.getByText(/2026-03-07/)).toBeInTheDocument();
+    // Check for the year part of the timestamp (locale-independent)
+    expect(screen.getByText(/2026/)).toBeInTheDocument();
   });
 });

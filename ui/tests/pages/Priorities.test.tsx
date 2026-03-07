@@ -3,6 +3,20 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Priorities } from "@/pages/Priorities";
 import { BrowserRouter } from "react-router-dom";
 
+vi.mock("@/store/auth", () => ({
+  useAuthStore: vi.fn((selector: (s: { logout: () => void }) => unknown) =>
+    selector({ logout: vi.fn() }),
+  ),
+}));
+
+vi.mock("@/lib/api/misconfigs", () => ({
+  fetchMisconfigs: vi.fn(),
+}));
+
+vi.mock("@/lib/api/images", () => ({
+  fetchImages: vi.fn(),
+}));
+
 vi.mock("@/features/priorities/components/FixTodaySection", () => ({
   FixTodaySection: () => <div data-testid="fix-today">Fix Today Section</div>,
 }));
@@ -32,7 +46,7 @@ describe("Priorities page", () => {
   it("renders page description", () => {
     renderWithRouter(<Priorities />);
     expect(
-      screen.getByText(/fix critical issues today and upgrade when you can/i),
+      screen.getByText(/what to act on across your infrastructure/i),
     ).toBeInTheDocument();
   });
 
@@ -48,7 +62,7 @@ describe("Priorities page", () => {
 
   it("renders divider between sections", () => {
     const { container } = renderWithRouter(<Priorities />);
-    const divider = container.querySelector("hr");
+    const divider = container.querySelector(".border-t");
     expect(divider).toBeInTheDocument();
   });
 });

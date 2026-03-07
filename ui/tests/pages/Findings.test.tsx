@@ -140,7 +140,7 @@ describe("Findings", () => {
       </MemoryRouter>,
     );
     await screen.findByRole("heading", { name: /^findings$/i });
-    expect(screen.getByText("nginx:latest")).toBeInTheDocument();
+    expect(screen.getAllByText("nginx:latest").length).toBeGreaterThan(0);
   });
 
   it("passes fixable param to API when true", async () => {
