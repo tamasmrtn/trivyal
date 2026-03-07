@@ -1,5 +1,6 @@
 """WebSocket connection manager for agents."""
 
+import contextlib
 import logging
 import secrets
 from datetime import UTC, datetime
@@ -48,6 +49,10 @@ class ConnectionManager:
         return agent
 
     async def connect(self, agent_id: str, ws: WebSocket):
+        old = self.active.get(agent_id)
+        if old is not None:
+            with contextlib.suppress(Exception):
+                await old.close(code=4000, reason="Superseded by new connection")
         self.active[agent_id] = ws
 
     def disconnect(self, agent_id: str):

@@ -30,13 +30,21 @@ async def process_scan_result(
         image_name, image_tag = raw_image_name, None
     image_digest = scan_data.get("Metadata", {}).get("RepoDigests", [None])[0] if scan_data.get("Metadata") else None
 
-    # Upsert container
-    stmt = select(Container).where(
-        Container.agent_id == agent_id,
-        Container.image_name == image_name,
-    )
-    container = (await session.execute(stmt)).scalar_one_or_none()
-    if not container:
+    # Get or create container — SELECT first (handles NULL container_name correctly
+    # via IS NULL), then INSERT only if not found. SQLite's on_conflict_do_nothing
+    # cannot be used here because NULL != NULL in UNIQUE indexes, so a NULL
+    # container_name would bypass the conflict check and create duplicate rows.
+    container = (
+        await session.execute(
+            select(Container).where(
+                Container.agent_id == agent_id,
+                Container.image_name == image_name,
+                Container.image_tag == image_tag,
+                Container.container_name == container_name,
+            )
+        )
+    ).scalar_one_or_none()
+    if container is None:
         container = Container(
             agent_id=agent_id,
             image_name=image_name,
@@ -48,8 +56,6 @@ async def process_scan_result(
         await session.flush()
     container.last_scanned = now
     container.image_digest = image_digest or container.image_digest
-    if container_name:
-        container.container_name = container_name
 
     # Create scan result
     severity_counts = {s: 0 for s in Severity}

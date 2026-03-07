@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from uuid import uuid4
 
+from sqlalchemy import UniqueConstraint
 from sqlmodel import JSON, Column, Field, Relationship, SQLModel
 
 
@@ -74,6 +75,10 @@ class Agent(SQLModel, table=True):
 
 
 class Container(SQLModel, table=True):
+    __table_args__ = (
+        UniqueConstraint("agent_id", "image_name", "image_tag", "container_name", name="uq_container_agent_image"),
+    )
+
     id: str = Field(default_factory=_new_id, primary_key=True)
     agent_id: str = Field(foreign_key="agent.id", index=True)
     image_name: str
