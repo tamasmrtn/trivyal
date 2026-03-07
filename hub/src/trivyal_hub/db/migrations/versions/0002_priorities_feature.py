@@ -58,34 +58,19 @@ def upgrade() -> None:
 
     # Extend riskacceptance: make finding_id nullable, add misconfig_finding_id
     if not _column_exists("riskacceptance", "misconfig_finding_id"):
-        op.create_table(
-            "riskacceptance_new",
-            sa.Column("id", sa.VARCHAR(), nullable=False),
-            sa.Column("finding_id", sa.VARCHAR(), nullable=True),
-            sa.Column("misconfig_finding_id", sa.VARCHAR(), nullable=True),
-            sa.Column("reason", sa.VARCHAR(), nullable=False),
-            sa.Column("accepted_by", sa.VARCHAR(), nullable=False),
-            sa.Column("expires_at", sa.DateTime(), nullable=True),
-            sa.Column("created_at", sa.DateTime(), nullable=False),
-            sa.ForeignKeyConstraint(["finding_id"], ["finding.id"]),
-            sa.ForeignKeyConstraint(["misconfig_finding_id"], ["misconfigfinding.id"]),
-            sa.PrimaryKeyConstraint("id"),
-        )
-        op.create_index("ix_riskacceptance_new_finding_id", "riskacceptance_new", ["finding_id"])
-        op.create_index(
-            "ix_riskacceptance_new_misconfig_finding_id",
-            "riskacceptance_new",
-            ["misconfig_finding_id"],
-        )
-
-        # Copy existing data
-        op.execute(
-            "INSERT INTO riskacceptance_new (id, finding_id, reason, accepted_by, expires_at, created_at) "
-            "SELECT id, finding_id, reason, accepted_by, expires_at, created_at FROM riskacceptance"
-        )
-
-        op.drop_table("riskacceptance")
-        op.rename_table("riskacceptance_new", "riskacceptance")
+        with op.batch_alter_table("riskacceptance") as batch_op:
+            batch_op.alter_column("finding_id", existing_type=sa.VARCHAR(), nullable=True)
+            batch_op.add_column(sa.Column("misconfig_finding_id", sa.VARCHAR(), nullable=True))
+            batch_op.create_foreign_key(
+                "fk_riskacceptance_misconfig_finding_id",
+                "misconfigfinding",
+                ["misconfig_finding_id"],
+                ["id"],
+            )
+            batch_op.create_index(
+                "ix_riskacceptance_misconfig_finding_id",
+                ["misconfig_finding_id"],
+            )
 
     # Backfill image_tag from image_name where it contains ':'
     op.execute(
