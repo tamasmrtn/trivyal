@@ -38,7 +38,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
     )
-    op.create_index("ix_agent_name", "agent", ["name"])
+    op.create_index("ix_agent_name", "agent", ["name"], unique=True)
     op.create_table(
         "notificationsettings",
         sa.Column("id", sa.VARCHAR(), nullable=False),
@@ -58,7 +58,7 @@ def upgrade() -> None:
         sa.Column("image_digest", sa.VARCHAR(), nullable=True),
         sa.Column("last_scanned", sa.DateTime(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(["agent_id"], ["agent.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["agent_id"], ["agent.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_container_agent_id", "container", ["agent_id"])
@@ -75,7 +75,7 @@ def upgrade() -> None:
         sa.Column("low_count", sa.Integer(), nullable=False),
         sa.Column("unknown_count", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(["agent_id"], ["agent.id"]),
-        sa.ForeignKeyConstraint(["container_id"], ["container.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["container_id"], ["container.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_scanresult_agent_id", "scanresult", ["agent_id"])
@@ -93,7 +93,7 @@ def upgrade() -> None:
         sa.Column("status", sa.VARCHAR(), nullable=False),
         sa.Column("first_seen", sa.DateTime(), nullable=False),
         sa.Column("last_seen", sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(["scan_result_id"], ["scanresult.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["scan_result_id"], ["scanresult.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_finding_cve_id", "finding", ["cve_id"])
@@ -106,7 +106,7 @@ def upgrade() -> None:
         sa.Column("accepted_by", sa.VARCHAR(), nullable=False),
         sa.Column("expires_at", sa.DateTime(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(["finding_id"], ["finding.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["finding_id"], ["finding.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_riskacceptance_finding_id", "riskacceptance", ["finding_id"])

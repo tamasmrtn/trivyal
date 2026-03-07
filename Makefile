@@ -87,4 +87,5 @@ scan-agent:
 # ── Migrate db ──────────────────────────────────────────────────────────────────────
 
 migrate:
-	cd hub && uv run alembic revision --autogenerate
+	cd hub && TRIVYAL_DATABASE_URL=sqlite+aiosqlite:///dev.db uv run alembic upgrade head
+	cd hub && TRIVYAL_DATABASE_URL=sqlite+aiosqlite:///dev.db uv run alembic revision --autogenerate

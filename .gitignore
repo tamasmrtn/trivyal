@@ -360,6 +360,7 @@ ui/dist/
 
 # Local dev data
 hub/data/
+hub/dev.db
 agent/data/
 
 # claude
