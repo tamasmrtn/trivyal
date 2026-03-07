@@ -12,6 +12,14 @@ interface Props {
   };
 }
 
+export const tooltipContentStyle: import("react").CSSProperties = {
+  background: "var(--color-card)",
+  border: "1px solid var(--color-border)",
+  borderRadius: 6,
+  fontSize: 12,
+  color: "var(--color-foreground)",
+};
+
 const SLICES = [
   { key: "critical" as const, label: "Critical", color: "#f87171" },
   { key: "high" as const, label: "High", color: "#fb923c" },
@@ -69,14 +77,7 @@ export function SeverityDonutChart({ summary, severityCounts }: Props) {
                   <Cell key={i} fill={entry.color} strokeWidth={0} />
                 ))}
               </Pie>
-              <Tooltip
-                contentStyle={{
-                  background: "var(--color-card)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: 6,
-                  fontSize: 12,
-                }}
-              />
+              <Tooltip contentStyle={tooltipContentStyle} />
             </PieChart>
           </ResponsiveContainer>
           {/* Centre label */}
