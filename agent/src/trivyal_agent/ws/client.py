@@ -10,6 +10,7 @@ from trivyal_agent.config import Settings
 from trivyal_agent.core.auth import get_machine_fingerprint, verify_hub_signature
 from trivyal_agent.core.cache import list_cached, save
 from trivyal_agent.core.docker_client import collect_host_metadata, list_running_images
+from trivyal_agent.core.misconfig_runner import run_misconfig_checks
 from trivyal_agent.core.scheduler import run_scheduler
 from trivyal_agent.core.trivy_runner import scan_all_images
 from trivyal_agent.health import HealthServer
@@ -155,6 +156,14 @@ class AgentClient:
             save(self._settings.data_dir, image_name, result)
             await self._send_scan_result(ws, result, container_name)
 
+        # Run misconfig checks on all running containers
+        try:
+            misconfig_results = await run_misconfig_checks()
+            for misconfig in misconfig_results:
+                await self._send_misconfig_result(ws, misconfig)
+        except Exception:
+            logger.exception("Failed to run misconfig checks")
+
     async def _send_scan_result(
         self, ws: ws_client.ClientConnection, result: dict, container_name: str | None = None
     ) -> None:
@@ -163,6 +172,13 @@ class AgentClient:
             logger.info("Sent scan result for %s", result.get("ArtifactName", "unknown"))
         except Exception:
             logger.exception("Failed to send scan result — will retry on reconnect")
+
+    async def _send_misconfig_result(self, ws: ws_client.ClientConnection, result: dict) -> None:
+        try:
+            await ws.send(json.dumps({"type": "misconfig_result", "data": result}))
+            logger.info("Sent misconfig result for %s", result.get("container_name", "unknown"))
+        except Exception:
+            logger.exception("Failed to send misconfig result")
 
     async def _flush_cache(self, ws: ws_client.ClientConnection) -> None:
         """Send any cached results from previous disconnected periods."""
