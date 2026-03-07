@@ -109,7 +109,7 @@ jobs:
           load: true
           tags: trivyal-hub:scan
           cache-from: type=gha
-      - uses: aquasecurity/trivy-action@0.34.2
+      - uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: trivyal-hub:scan
           format: table
@@ -148,7 +148,7 @@ jobs:
           load: true
           tags: trivyal-agent:scan
           cache-from: type=gha
-      - uses: aquasecurity/trivy-action@0.34.2
+      - uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: trivyal-agent:scan
           format: table

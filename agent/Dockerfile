@@ -38,7 +38,8 @@ COPY --from=python-builder /app/.venv /app/.venv
 
 # Create non-root group that matches the host Docker socket GID at runtime.
 # Default 999 covers most Debian/Ubuntu hosts; override via group_add in compose.
-RUN apk add --no-cache su-exec && \
+RUN apk upgrade --no-cache && \
+    apk add --no-cache su-exec && \
     addgroup -S trivyal && \
     adduser -S -G trivyal -H trivyal && \
     mkdir -p /app/data && \
