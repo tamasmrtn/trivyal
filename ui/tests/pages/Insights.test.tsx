@@ -139,4 +139,44 @@ describe("Insights page", () => {
 
     expect(fetchInsightsSummary).toHaveBeenCalledWith(7);
   });
+
+  it("renders Fixable only toggle button", async () => {
+    setupMocks();
+    render(<Insights />);
+    await screen.findByRole("heading", { name: /^insights$/i });
+    expect(
+      screen.getByRole("button", { name: /fixable only/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("passes fixable param to API when true", async () => {
+    setupMocks();
+    const user = userEvent.setup();
+    render(<Insights />);
+    await screen.findByRole("heading", { name: /^insights$/i });
+
+    // Click fixable button
+    const fixableBtn = screen.getByRole("button", { name: /fixable only/i });
+    await user.click(fixableBtn);
+
+    // Verify API is called with fixable=true
+    expect(fetchInsightsSummary).toHaveBeenCalledWith(30, true);
+  });
+
+  it("fetches with correct params when fixable and window are set", async () => {
+    setupMocks();
+    const user = userEvent.setup();
+    render(<Insights />);
+    await screen.findByRole("heading", { name: /^insights$/i });
+
+    // Change window to 7d
+    await user.click(screen.getByRole("button", { name: "7d" }));
+
+    // Click fixable button
+    const fixableBtn = screen.getByRole("button", { name: /fixable only/i });
+    await user.click(fixableBtn);
+
+    // Both params should be passed
+    expect(fetchInsightsSummary).toHaveBeenCalledWith(7, true);
+  });
 });
