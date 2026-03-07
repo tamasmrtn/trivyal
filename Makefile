@@ -83,3 +83,9 @@ scan-agent:
 	  --severity CRITICAL,HIGH \
 	  --ignore-unfixed \
 	  trivyal-agent:scan
+
+# ── Migrate db ──────────────────────────────────────────────────────────────────────
+
+migrate:
+	cd hub && TRIVYAL_DATABASE_URL=sqlite+aiosqlite:///dev.db uv run alembic upgrade head
+	cd hub && TRIVYAL_DATABASE_URL=sqlite+aiosqlite:///dev.db uv run alembic revision --autogenerate
