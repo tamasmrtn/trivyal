@@ -50,7 +50,8 @@ COPY --from=python-builder /app/.venv /app/.venv
 # Copy the compiled UI for FastAPI to serve as static files
 COPY --from=ui-builder /ui/dist ./static
 
-RUN apk add --no-cache su-exec && \
+RUN apk upgrade --no-cache && \
+    apk add --no-cache su-exec && \
     addgroup -S trivyal && \
     adduser -S -G trivyal -H trivyal && \
     mkdir -p /app/data && \
