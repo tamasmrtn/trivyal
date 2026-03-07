@@ -83,3 +83,8 @@ scan-agent:
 	  --severity CRITICAL,HIGH \
 	  --ignore-unfixed \
 	  trivyal-agent:scan
+
+# ── Migrate db ──────────────────────────────────────────────────────────────────────
+
+migrate:
+	cd hub && uv run alembic revision --autogenerate
