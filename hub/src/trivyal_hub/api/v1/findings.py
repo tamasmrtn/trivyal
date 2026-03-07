@@ -65,6 +65,8 @@ async def list_findings(
     container_id: str | None = None,
     cve_id: str | None = None,
     package: str | None = None,
+    image_name: str | None = None,
+    fixable: bool | None = None,
     sort_by: str = Query(
         "first_seen",
         pattern="^(severity|status|cve_id|package_name|first_seen|last_seen|container)$",
@@ -104,6 +106,13 @@ async def list_findings(
     if container_id:
         query = query.where(ScanResult.container_id == container_id)
         count_q = count_q.where(ScanResult.container_id == container_id)
+    if image_name:
+        query = query.where(Container.image_name == image_name)
+        count_q = count_q.where(Container.image_name == image_name)
+    if fixable:
+        fixable_cond = Finding.fixed_version.isnot(None) & (Finding.fixed_version != "")
+        query = query.where(fixable_cond)
+        count_q = count_q.where(fixable_cond)
 
     sort_col = _SORT_COLUMNS.get(sort_by, Finding.first_seen)
     query = query.order_by(sort_col.asc() if sort_dir == "asc" else sort_col.desc())

@@ -80,41 +80,49 @@ def _day_range(window: int) -> list[date]:
     return days
 
 
+_FIXABLE_COND = Finding.fixed_version.isnot(None) & (Finding.fixed_version != "")
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 
 @router.get("/summary", response_model=InsightsSummary)
 async def get_summary(
     window: int = Query(30, ge=1, le=365),
+    fixable: bool | None = None,
     session: AsyncSession = Depends(get_session),
 ):
     window_start_dt = _window_start(window)
 
-    active_findings = (
-        await session.execute(select(func.count()).select_from(Finding).where(Finding.status == FindingStatus.ACTIVE))
-    ).scalar_one()
+    active_q = select(func.count()).select_from(Finding).where(Finding.status == FindingStatus.ACTIVE)
+    if fixable:
+        active_q = active_q.where(_FIXABLE_COND)
+    active_findings = (await session.execute(active_q)).scalar_one()
 
-    critical_high = (
-        await session.execute(
-            select(func.count())
-            .select_from(Finding)
-            .where(Finding.status == FindingStatus.ACTIVE)
-            .where(Finding.severity.in_([Severity.CRITICAL, Severity.HIGH]))
-        )
-    ).scalar_one()
+    ch_q = (
+        select(func.count())
+        .select_from(Finding)
+        .where(Finding.status == FindingStatus.ACTIVE)
+        .where(Finding.severity.in_([Severity.CRITICAL, Severity.HIGH]))
+    )
+    if fixable:
+        ch_q = ch_q.where(_FIXABLE_COND)
+    critical_high = (await session.execute(ch_q)).scalar_one()
 
-    new_in_period = (
-        await session.execute(select(func.count()).select_from(Finding).where(Finding.first_seen >= window_start_dt))
-    ).scalar_one()
+    new_q = select(func.count()).select_from(Finding).where(Finding.first_seen >= window_start_dt)
+    if fixable:
+        new_q = new_q.where(_FIXABLE_COND)
+    new_in_period = (await session.execute(new_q)).scalar_one()
 
-    resolved_in_period = (
-        await session.execute(
-            select(func.count())
-            .select_from(Finding)
-            .where(Finding.first_seen >= window_start_dt)
-            .where(Finding.status != FindingStatus.ACTIVE)
-        )
-    ).scalar_one()
+    resolved_q = (
+        select(func.count())
+        .select_from(Finding)
+        .where(Finding.first_seen >= window_start_dt)
+        .where(Finding.status != FindingStatus.ACTIVE)
+    )
+    if fixable:
+        resolved_q = resolved_q.where(_FIXABLE_COND)
+    resolved_in_period = (await session.execute(resolved_q)).scalar_one()
 
     fix_rate = (resolved_in_period / new_in_period * 100) if new_in_period > 0 else 0.0
 
@@ -129,21 +137,22 @@ async def get_summary(
 @router.get("/trend", response_model=TrendResponse)
 async def get_trend(
     window: int = Query(30, ge=1, le=365),
+    fixable: bool | None = None,
     session: AsyncSession = Depends(get_session),
 ):
     window_start_dt = _window_start(window)
 
-    # Findings that are either still active or were last seen within the window
-    findings_rows = (
-        await session.execute(
-            select(Finding.severity, Finding.status, Finding.first_seen, Finding.last_seen).where(
-                or_(
-                    Finding.status == FindingStatus.ACTIVE,
-                    Finding.last_seen >= window_start_dt,
-                )
-            )
+    findings_q = select(
+        Finding.severity, Finding.status, Finding.first_seen, Finding.last_seen, Finding.fixed_version
+    ).where(
+        or_(
+            Finding.status == FindingStatus.ACTIVE,
+            Finding.last_seen >= window_start_dt,
         )
-    ).all()
+    )
+    if fixable:
+        findings_q = findings_q.where(_FIXABLE_COND)
+    findings_rows = (await session.execute(findings_q)).all()
 
     scan_events = (
         (
@@ -163,7 +172,7 @@ async def get_trend(
         counts = {s: 0 for s in (Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW)}
         new_count = 0
         resolved_count = 0
-        for sev, fstatus, first_seen, last_seen in findings_rows:
+        for sev, fstatus, first_seen, last_seen, _fv in findings_rows:
             if first_seen.date() > day:
                 continue
             visible = fstatus == FindingStatus.ACTIVE or last_seen.date() >= day
@@ -194,6 +203,7 @@ async def get_trend(
 @router.get("/agents/trend", response_model=AgentTrendResponse)
 async def get_agents_trend(
     window: int = Query(30, ge=1, le=365),
+    fixable: bool | None = None,
     session: AsyncSession = Depends(get_session),
 ):
     window_start_dt = _window_start(window)
@@ -202,19 +212,19 @@ async def get_agents_trend(
     if not agents_rows:
         return AgentTrendResponse(agents=[], scan_events=[])
 
-    # Join Finding -> ScanResult to get agent_id per finding
-    findings_rows = (
-        await session.execute(
-            select(ScanResult.agent_id, Finding.status, Finding.first_seen, Finding.last_seen)
-            .join(Finding, Finding.scan_result_id == ScanResult.id)
-            .where(
-                or_(
-                    Finding.status == FindingStatus.ACTIVE,
-                    Finding.last_seen >= window_start_dt,
-                )
+    findings_q = (
+        select(ScanResult.agent_id, Finding.status, Finding.first_seen, Finding.last_seen)
+        .join(Finding, Finding.scan_result_id == ScanResult.id)
+        .where(
+            or_(
+                Finding.status == FindingStatus.ACTIVE,
+                Finding.last_seen >= window_start_dt,
             )
         )
-    ).all()
+    )
+    if fixable:
+        findings_q = findings_q.where(_FIXABLE_COND)
+    findings_rows = (await session.execute(findings_q)).all()
 
     scan_events = (
         (
@@ -255,18 +265,20 @@ async def get_agents_trend(
 async def get_top_cves(
     window: int = Query(30, ge=1, le=365),
     limit: int = Query(10, ge=1, le=50),
+    fixable: bool | None = None,
     session: AsyncSession = Depends(get_session),
 ):
     window_start_dt = _window_start(window)
 
-    rows = (
-        await session.execute(
-            select(Finding.cve_id, Finding.severity, ScanResult.container_id, ScanResult.agent_id)
-            .join(ScanResult, Finding.scan_result_id == ScanResult.id)
-            .where(Finding.status == FindingStatus.ACTIVE)
-            .where(Finding.first_seen >= window_start_dt)
-        )
-    ).all()
+    q = (
+        select(Finding.cve_id, Finding.severity, ScanResult.container_id, ScanResult.agent_id)
+        .join(ScanResult, Finding.scan_result_id == ScanResult.id)
+        .where(Finding.status == FindingStatus.ACTIVE)
+        .where(Finding.first_seen >= window_start_dt)
+    )
+    if fixable:
+        q = q.where(_FIXABLE_COND)
+    rows = (await session.execute(q)).all()
 
     cve_data: dict[str, dict] = {}
     for cve_id, severity, container_id, agent_id in rows:
