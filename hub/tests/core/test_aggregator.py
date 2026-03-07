@@ -53,7 +53,8 @@ class TestProcessScanResult:
 
         containers = (await session.execute(select(Container))).scalars().all()
         assert len(containers) == 1
-        assert containers[0].image_name == "nginx:latest"
+        assert containers[0].image_name == "nginx"
+        assert containers[0].image_tag == "latest"
 
         findings = (await session.execute(select(Finding))).scalars().all()
         assert len(findings) == 2

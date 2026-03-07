@@ -23,7 +23,11 @@ async def process_scan_result(
     """Ingest a Trivy scan result: upsert containers, create scan record, upsert findings."""
     now = datetime.now(UTC)
 
-    image_name = scan_data.get("ArtifactName", "unknown")
+    raw_image_name = scan_data.get("ArtifactName", "unknown")
+    if ":" in raw_image_name:
+        image_name, image_tag = raw_image_name.rsplit(":", 1)
+    else:
+        image_name, image_tag = raw_image_name, None
     image_digest = scan_data.get("Metadata", {}).get("RepoDigests", [None])[0] if scan_data.get("Metadata") else None
 
     # Upsert container
@@ -36,6 +40,7 @@ async def process_scan_result(
         container = Container(
             agent_id=agent_id,
             image_name=image_name,
+            image_tag=image_tag,
             image_digest=image_digest,
             container_name=container_name,
         )
