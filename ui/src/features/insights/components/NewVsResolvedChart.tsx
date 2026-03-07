@@ -16,6 +16,14 @@ interface Props {
   days: TrendDayPoint[];
 }
 
+export const tooltipContentStyle: import("react").CSSProperties = {
+  background: "var(--color-card)",
+  border: "1px solid var(--color-border)",
+  borderRadius: 6,
+  fontSize: 12,
+  color: "var(--color-foreground)",
+};
+
 function formatDate(dateStr: string) {
   const d = new Date(dateStr);
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -91,12 +99,7 @@ export function NewVsResolvedChart({ days }: Props) {
             />
             <ReferenceLine y={0} stroke="var(--color-border)" />
             <Tooltip
-              contentStyle={{
-                background: "var(--color-card)",
-                border: "1px solid var(--color-border)",
-                borderRadius: 6,
-                fontSize: 12,
-              }}
+              contentStyle={tooltipContentStyle}
               labelFormatter={(label: unknown) => formatDate(label as string)}
               formatter={(
                 value: number | undefined,
