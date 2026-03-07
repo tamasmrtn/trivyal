@@ -31,6 +31,13 @@ class FindingStatus(StrEnum):
     FALSE_POSITIVE = "false_positive"
 
 
+class MisconfigStatus(StrEnum):
+    ACTIVE = "active"
+    ACCEPTED = "accepted"
+    FALSE_POSITIVE = "false_positive"
+    FIXED = "fixed"
+
+
 class Severity(StrEnum):
     CRITICAL = "CRITICAL"
     HIGH = "HIGH"
@@ -70,6 +77,7 @@ class Container(SQLModel, table=True):
     id: str = Field(default_factory=_new_id, primary_key=True)
     agent_id: str = Field(foreign_key="agent.id", index=True)
     image_name: str
+    image_tag: str | None = None
     container_name: str | None = None
     image_digest: str | None = None
     last_scanned: datetime | None = None
@@ -77,6 +85,10 @@ class Container(SQLModel, table=True):
 
     agent: Agent = Relationship(back_populates="containers")
     scan_results: list[ScanResult] = Relationship(
+        back_populates="container",
+        cascade_delete=True,
+    )
+    misconfig_findings: list[MisconfigFinding] = Relationship(
         back_populates="container",
         cascade_delete=True,
     )
@@ -121,15 +133,35 @@ class Finding(SQLModel, table=True):
     )
 
 
+class MisconfigFinding(SQLModel, table=True):
+    id: str = Field(default_factory=_new_id, primary_key=True)
+    container_id: str = Field(foreign_key="container.id", index=True)
+    check_id: str = Field(index=True)
+    severity: Severity
+    title: str
+    fix_guideline: str
+    status: MisconfigStatus = Field(default=MisconfigStatus.ACTIVE)
+    first_seen: datetime = Field(default_factory=_utcnow)
+    last_seen: datetime = Field(default_factory=_utcnow)
+
+    container: Container = Relationship(back_populates="misconfig_findings")
+    acceptances: list[RiskAcceptance] = Relationship(
+        back_populates="misconfig_finding",
+        cascade_delete=True,
+    )
+
+
 class RiskAcceptance(SQLModel, table=True):
     id: str = Field(default_factory=_new_id, primary_key=True)
-    finding_id: str = Field(foreign_key="finding.id", index=True)
+    finding_id: str | None = Field(default=None, foreign_key="finding.id", index=True)
+    misconfig_finding_id: str | None = Field(default=None, foreign_key="misconfigfinding.id", index=True)
     reason: str
     accepted_by: str = Field(default="admin")
     expires_at: datetime | None = None
     created_at: datetime = Field(default_factory=_utcnow)
 
-    finding: Finding = Relationship(back_populates="acceptances")
+    finding: Finding | None = Relationship(back_populates="acceptances")
+    misconfig_finding: MisconfigFinding | None = Relationship(back_populates="acceptances")
 
 
 class NotificationSettings(SQLModel, table=True):
