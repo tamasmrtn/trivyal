@@ -1,14 +1,9 @@
 import { useCallback, useEffect, useReducer } from "react";
-import { fetchFindings } from "@/lib/api/findings";
-import type { FindingResponse, FindingStatus, Severity } from "@/lib/api/types";
+import { fetchImages } from "@/lib/api/images";
+import type { ImageResponse } from "@/lib/api/types";
 
-interface UseFindingsOptions {
-  severity?: Severity;
-  status?: FindingStatus;
-  cve_id?: string;
-  package?: string;
-  container_id?: string;
-  image_name?: string;
+interface UseImagesOptions {
+  agent_id?: string;
   fixable?: boolean;
   sort_by?: string;
   sort_dir?: "asc" | "desc";
@@ -17,7 +12,7 @@ interface UseFindingsOptions {
 }
 
 type State = {
-  data: FindingResponse[];
+  data: ImageResponse[];
   total: number;
   loading: boolean;
   error: string | null;
@@ -25,7 +20,7 @@ type State = {
 
 type Action =
   | { type: "LOADING" }
-  | { type: "SUCCESS"; data: FindingResponse[]; total: number }
+  | { type: "SUCCESS"; data: ImageResponse[]; total: number }
   | { type: "ERROR"; error: string };
 
 function reducer(state: State, action: Action): State {
@@ -44,13 +39,8 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-export function useFindings(options?: UseFindingsOptions) {
-  const severity = options?.severity;
-  const status = options?.status;
-  const cveId = options?.cve_id;
-  const pkg = options?.package;
-  const containerId = options?.container_id;
-  const imageName = options?.image_name;
+export function useImages(options?: UseImagesOptions) {
+  const agentId = options?.agent_id;
   const fixable = options?.fixable;
   const sortBy = options?.sort_by;
   const sortDir = options?.sort_dir;
@@ -68,13 +58,8 @@ export function useFindings(options?: UseFindingsOptions) {
     let cancelled = false;
     dispatch({ type: "LOADING" });
 
-    fetchFindings({
-      severity,
-      status,
-      cve_id: cveId,
-      package: pkg,
-      container_id: containerId,
-      image_name: imageName,
+    fetchImages({
+      agent_id: agentId,
       fixable,
       sort_by: sortBy,
       sort_dir: sortDir,
@@ -90,8 +75,7 @@ export function useFindings(options?: UseFindingsOptions) {
         if (!cancelled) {
           dispatch({
             type: "ERROR",
-            error:
-              err instanceof Error ? err.message : "Failed to load findings",
+            error: err instanceof Error ? err.message : "Failed to load images",
           });
         }
       });
@@ -99,27 +83,11 @@ export function useFindings(options?: UseFindingsOptions) {
     return () => {
       cancelled = true;
     };
-  }, [
-    severity,
-    status,
-    cveId,
-    pkg,
-    containerId,
-    imageName,
-    fixable,
-    sortBy,
-    sortDir,
-    page,
-    pageSize,
-  ]);
+  }, [agentId, fixable, sortBy, sortDir, page, pageSize]);
 
   useEffect(() => {
     return load();
   }, [load]);
 
-  const refetch = useCallback(() => {
-    load();
-  }, [load]);
-
-  return { data, total, loading, error, refetch };
+  return { data, total, loading, error };
 }

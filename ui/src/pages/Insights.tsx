@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   useInsights,
   InsightsSummaryCards,
@@ -8,6 +9,7 @@ import {
   SeverityDonutChart,
   TopCvesTable,
 } from "@/features/insights";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const WINDOWS = [
@@ -17,8 +19,20 @@ const WINDOWS = [
 ];
 
 export function Insights() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [window, setWindow] = useState(30);
-  const { data, loading, error } = useInsights(window);
+  const fixable = searchParams.get("fixable") === "true";
+  const { data, loading, error } = useInsights(window, fixable || undefined);
+
+  function toggleFixable() {
+    const next = new URLSearchParams(searchParams);
+    if (fixable) {
+      next.delete("fixable");
+    } else {
+      next.set("fixable", "true");
+    }
+    setSearchParams(next);
+  }
 
   if (loading) {
     return (
@@ -54,21 +68,31 @@ export function Insights() {
       {/* Page header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Insights</h1>
-        <div className="flex items-center gap-1 rounded-md border p-1">
-          {WINDOWS.map(({ label, value }) => (
-            <button
-              key={value}
-              onClick={() => setWindow(value)}
-              className={cn(
-                "rounded px-3 py-1 text-sm font-medium transition-colors",
-                window === value
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 rounded-md border p-1">
+            {WINDOWS.map(({ label, value }) => (
+              <button
+                key={value}
+                onClick={() => setWindow(value)}
+                className={cn(
+                  "rounded px-3 py-1 text-sm font-medium transition-colors",
+                  window === value
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleFixable}
+            className={cn(fixable && "bg-primary text-primary-foreground")}
+          >
+            Fixable only
+          </Button>
         </div>
       </div>
 

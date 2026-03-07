@@ -31,6 +31,8 @@ export function fetchFindings(params?: {
   cve_id?: string;
   package?: string;
   container_id?: string;
+  image_name?: string;
+  fixable?: boolean;
   sort_by?: string;
   sort_dir?: "asc" | "desc";
   page?: number;
@@ -42,6 +44,8 @@ export function fetchFindings(params?: {
   if (params?.cve_id) search.set("cve_id", params.cve_id);
   if (params?.package) search.set("package", params.package);
   if (params?.container_id) search.set("container_id", params.container_id);
+  if (params?.image_name) search.set("image_name", params.image_name);
+  if (params?.fixable) search.set("fixable", "true");
   if (params?.sort_by) search.set("sort_by", params.sort_by);
   if (params?.sort_dir) search.set("sort_dir", params.sort_dir);
   if (params?.page) search.set("page", String(params.page));

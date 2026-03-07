@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Server,
   ShieldAlert,
+  ListChecks,
   TrendingUp,
   History,
   Settings,
@@ -11,16 +12,18 @@ import {
   Moon,
   Menu,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { fetchDashboardSummary } from "@/lib/api/dashboard";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/agents", icon: Server, label: "Agents" },
   { to: "/findings", icon: ShieldAlert, label: "Findings" },
+  { to: "/priorities", icon: ListChecks, label: "Priorities" },
   { to: "/insights", icon: TrendingUp, label: "Insights" },
   { to: "/scans", icon: History, label: "Scan History" },
   { to: "/settings", icon: Settings, label: "Settings" },
@@ -39,11 +42,13 @@ function NavContents({
   toggleTheme,
   logout,
   onNavClick,
+  priorityCount,
 }: {
   dark: boolean;
   toggleTheme: () => void;
   logout: () => void;
   onNavClick?: () => void;
+  priorityCount: number;
 }) {
   return (
     <>
@@ -65,6 +70,11 @@ function NavContents({
           >
             <Icon className="h-4 w-4" />
             {label}
+            {to === "/priorities" && priorityCount > 0 && (
+              <span className="bg-primary/15 text-primary border-primary/30 ml-auto rounded-full border px-2 py-0.5 text-xs font-medium">
+                {priorityCount}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
@@ -92,6 +102,13 @@ export function PageLayout() {
   const logout = useAuthStore((s) => s.logout);
   const [dark, setDark] = useState(getInitialDark);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [priorityCount, setPriorityCount] = useState(0);
+
+  useEffect(() => {
+    fetchDashboardSummary()
+      .then((s) => setPriorityCount(s.misconfig.total_active + s.fixable_cves))
+      .catch(() => {});
+  }, []);
 
   function toggleTheme() {
     const next = !dark;
@@ -113,7 +130,12 @@ export function PageLayout() {
             trivy<span className="text-primary">al</span>
           </span>
         </div>
-        <NavContents dark={dark} toggleTheme={toggleTheme} logout={logout} />
+        <NavContents
+          dark={dark}
+          toggleTheme={toggleTheme}
+          logout={logout}
+          priorityCount={priorityCount}
+        />
       </aside>
 
       {/* Mobile top header */}
@@ -139,6 +161,7 @@ export function PageLayout() {
                 toggleTheme={toggleTheme}
                 logout={logout}
                 onNavClick={() => setSheetOpen(false)}
+                priorityCount={priorityCount}
               />
             </SheetContent>
           </Sheet>

@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useReducer } from "react";
-import { fetchFindings } from "@/lib/api/findings";
-import type { FindingResponse, FindingStatus, Severity } from "@/lib/api/types";
+import { fetchMisconfigs } from "@/lib/api/misconfigs";
+import type {
+  MisconfigFindingResponse,
+  MisconfigStatus,
+  Severity,
+} from "@/lib/api/types";
 
-interface UseFindingsOptions {
+interface UseMisconfigsOptions {
   severity?: Severity;
-  status?: FindingStatus;
-  cve_id?: string;
-  package?: string;
-  container_id?: string;
-  image_name?: string;
-  fixable?: boolean;
+  status?: MisconfigStatus;
+  agent_id?: string;
   sort_by?: string;
   sort_dir?: "asc" | "desc";
   page?: number;
@@ -17,7 +17,7 @@ interface UseFindingsOptions {
 }
 
 type State = {
-  data: FindingResponse[];
+  data: MisconfigFindingResponse[];
   total: number;
   loading: boolean;
   error: string | null;
@@ -25,7 +25,7 @@ type State = {
 
 type Action =
   | { type: "LOADING" }
-  | { type: "SUCCESS"; data: FindingResponse[]; total: number }
+  | { type: "SUCCESS"; data: MisconfigFindingResponse[]; total: number }
   | { type: "ERROR"; error: string };
 
 function reducer(state: State, action: Action): State {
@@ -44,14 +44,10 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-export function useFindings(options?: UseFindingsOptions) {
+export function useMisconfigs(options?: UseMisconfigsOptions) {
   const severity = options?.severity;
   const status = options?.status;
-  const cveId = options?.cve_id;
-  const pkg = options?.package;
-  const containerId = options?.container_id;
-  const imageName = options?.image_name;
-  const fixable = options?.fixable;
+  const agentId = options?.agent_id;
   const sortBy = options?.sort_by;
   const sortDir = options?.sort_dir;
   const page = options?.page;
@@ -68,14 +64,10 @@ export function useFindings(options?: UseFindingsOptions) {
     let cancelled = false;
     dispatch({ type: "LOADING" });
 
-    fetchFindings({
+    fetchMisconfigs({
       severity,
       status,
-      cve_id: cveId,
-      package: pkg,
-      container_id: containerId,
-      image_name: imageName,
-      fixable,
+      agent_id: agentId,
       sort_by: sortBy,
       sort_dir: sortDir,
       page,
@@ -91,7 +83,9 @@ export function useFindings(options?: UseFindingsOptions) {
           dispatch({
             type: "ERROR",
             error:
-              err instanceof Error ? err.message : "Failed to load findings",
+              err instanceof Error
+                ? err.message
+                : "Failed to load misconfigurations",
           });
         }
       });
@@ -99,19 +93,7 @@ export function useFindings(options?: UseFindingsOptions) {
     return () => {
       cancelled = true;
     };
-  }, [
-    severity,
-    status,
-    cveId,
-    pkg,
-    containerId,
-    imageName,
-    fixable,
-    sortBy,
-    sortDir,
-    page,
-    pageSize,
-  ]);
+  }, [severity, status, agentId, sortBy, sortDir, page, pageSize]);
 
   useEffect(() => {
     return load();
