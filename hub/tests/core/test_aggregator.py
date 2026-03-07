@@ -66,27 +66,30 @@ class TestProcessScanResult:
         containers = (await session.execute(select(Container))).scalars().all()
         assert containers[0].container_name == "my-nginx"
 
-    async def test_updates_container_name_on_rescan(self, session):
+    async def test_different_container_names_create_separate_rows(self, session):
+        # container_name is part of the unique key, so the same image running
+        # under two different names (e.g. after a rename) produces two rows.
         agent = await _create_agent(session)
         await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="old-name")
         await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="new-name")
 
         containers = (await session.execute(select(Container))).scalars().all()
-        assert len(containers) == 1
-        assert containers[0].container_name == "new-name"
+        assert len(containers) == 2
+        names = {c.container_name for c in containers}
+        assert names == {"old-name", "new-name"}
 
     async def test_reuses_existing_container(self, session):
         agent = await _create_agent(session)
-        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT)
-        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT)
+        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="my-nginx")
+        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="my-nginx")
 
         containers = (await session.execute(select(Container))).scalars().all()
         assert len(containers) == 1
 
     async def test_updates_existing_finding_last_seen(self, session):
         agent = await _create_agent(session)
-        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT)
-        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT)
+        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="my-nginx")
+        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="my-nginx")
 
         findings = (await session.execute(select(Finding))).scalars().all()
         # Should still have 2 findings (not 4), existing ones get updated

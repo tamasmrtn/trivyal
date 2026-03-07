@@ -32,13 +32,19 @@ async def process_misconfig_result(
         name_part = image_name
         tag_part = None
 
-    # Find or create the container
-    stmt = select(Container).where(
-        Container.agent_id == agent_id,
-        Container.image_name == name_part,
-    )
-    container = (await session.execute(stmt)).scalar_one_or_none()
-    if not container:
+    # Get or create container — SELECT first (handles NULL container_name correctly
+    # via IS NULL), then INSERT only if not found.
+    container = (
+        await session.execute(
+            select(Container).where(
+                Container.agent_id == agent_id,
+                Container.image_name == name_part,
+                Container.image_tag == tag_part,
+                Container.container_name == container_name,
+            )
+        )
+    ).scalar_one_or_none()
+    if container is None:
         container = Container(
             agent_id=agent_id,
             image_name=name_part,
@@ -47,10 +53,6 @@ async def process_misconfig_result(
         )
         session.add(container)
         await session.flush()
-    if container_name:
-        container.container_name = container_name
-    if tag_part:
-        container.image_tag = tag_part
 
     # Track which check_ids are present in this scan
     current_check_ids: set[str] = set()
