@@ -14,12 +14,14 @@ Trivyal is a self-hosted vulnerability management tool designed for small homela
 
 ### Hub
 - Dashboard showing all connected agents and their status (online / offline / scanning)
-- Aggregated vulnerability view across all hosts — filterable by severity (Critical, High, Medium, Low, Unknown)
+- **Priorities page** — unified action signal split into two sections:
+  - *Fix Today* — Docker configuration issues (privileged containers, host network, missing resource limits, etc.) with severity and status filters
+  - *Update When You Can* — image-centric CVE view grouped by image, showing fixable CVE counts and per-severity breakdowns
+- Aggregated vulnerability view across all hosts — filterable by severity, status, and fixable CVEs
 - Per-host and per-container drill-down view
 - Finding timeline — tracks when CVEs appeared and when they were resolved
 - Diff view between scans — highlights new findings and fixed findings
-- Risk acceptance — mark a finding as accepted with a reason and expiry date
-- False positive flagging per finding
+- Risk acceptance — mark a finding as accepted with a reason and expiry date; revoke acceptance; false positive flagging
 - Scan history — full log of every scan run per host
 - Notification support — webhook (Slack, Discord, Ntfy) on new Critical/High findings
 - Agent management UI — add, remove, and view agents; copy-paste Docker Compose snippet for quick agent deploy
@@ -29,8 +31,9 @@ Trivyal is a self-hosted vulnerability management tool designed for small homela
 ### Agent
 - Automatic discovery of all running containers via Docker socket
 - Trivy image scan per container on a configurable schedule (default: nightly)
+- **Docker configuration scanning** — inspects each container via the Docker API and flags misconfigurations: privileged mode, host network/PID/IPC namespaces, missing read-only root filesystem, missing CPU/memory limits, sensitive volume mounts
 - On-demand scan trigger from hub
-- Ships results to hub via authenticated WebSocket connection
+- Ships both Trivy scan results and misconfig results to hub via authenticated WebSocket connection
 - Caches last scan results locally for resilience if hub is temporarily unreachable
 - Self-reports host metadata (hostname, Docker version, OS, agent version)
 - Lightweight — runs as a single Docker container, mounts Docker socket read-only
@@ -124,9 +127,13 @@ User                    Hub                         Agent
  │                       │◄──────────────────────────│
  │                       │     {type: scan_result,    │
  │                       │      data: <trivy JSON>}   │
+ │                       │◄──────────────────────────│
+ │                       │     {type: misconfig_result│
+ │                       │      data: <check JSON>}   │
  │                       │                            │
  │                       │  7. Hub stores ScanResult  │
- │                       │     + Findings in DB;      │
+ │                       │     + Findings +           │
+ │                       │     MisconfigFindings;     │
  │                       │     agent status → online  │
 ```
 
@@ -206,6 +213,7 @@ Container
 ├── id
 ├── agent_id (FK)
 ├── image_name
+├── image_tag
 ├── image_digest
 └── last_scanned
 
@@ -236,6 +244,18 @@ RiskAcceptance
 ├── accepted_by
 ├── expires_at
 └── created_at
+
+MisconfigFinding
+├── id
+├── container_id (FK)
+├── agent_id (FK)
+├── check_id            # e.g. PRIV_001, HOST_NET
+├── severity (CRITICAL | HIGH | MEDIUM | LOW | INFO)
+├── title
+├── fix_guideline
+├── status (active | fixed | accepted | false_positive)
+├── first_seen
+└── last_seen
 ```
 
 ---
@@ -274,7 +294,7 @@ GET    /api/v1/scans                       # scan history across all agents (pag
 GET    /api/v1/scans/{id}                  # scan detail + full Trivy output
 
 # Findings
-GET    /api/v1/findings                    # all findings (filterable: ?severity=&status=&agent_id=&cve_id=&package=&container_id=; sortable: ?sort_by=severity|status|cve_id|package_name|container|first_seen|last_seen&sort_dir=asc|desc)
+GET    /api/v1/findings                    # all findings (filterable: ?severity=&status=&agent_id=&cve_id=&package=&container_id=&fixable=&image_name=; sortable: ?sort_by=severity|status|cve_id|package_name|container|first_seen|last_seen&sort_dir=asc|desc)
 GET    /api/v1/findings/{id}               # single finding detail
 PATCH  /api/v1/findings/{id}               # update status (accept | false_positive | reopen)
 
@@ -282,11 +302,21 @@ PATCH  /api/v1/findings/{id}               # update status (accept | false_posit
 POST   /api/v1/findings/{id}/acceptances   # create risk acceptance { reason, expires_at }
 DELETE /api/v1/findings/{id}/acceptances/{acceptance_id}  # revoke acceptance
 
+# Misconfigurations
+GET    /api/v1/misconfigurations           # all misconfig findings (filterable: ?severity=&status=&agent_id=&sort_by=&sort_dir=&page=&page_size=)
+GET    /api/v1/misconfigurations/{id}      # single misconfig detail
+PATCH  /api/v1/misconfigurations/{id}      # update status (accept | false_positive | reopen)
+POST   /api/v1/misconfigurations/{id}/acceptances   # create risk acceptance
+DELETE /api/v1/misconfigurations/{id}/acceptances/{acceptance_id}  # revoke acceptance
+
+# Images
+GET    /api/v1/images                      # image-centric CVE summary (filterable: ?agent_id=&fixable=; sortable: ?sort_by=fixable_count|name&sort_dir=asc|desc)
+
 # Dashboard
-GET    /api/v1/dashboard/summary           # severity counts + agent status counts
+GET    /api/v1/dashboard/summary           # severity counts + agent status counts + misconfig active count + fixable CVE count — ?fixable=true
 
 # Insights
-GET    /api/v1/insights/summary            # aggregate counts for the time window: active_findings, critical_high, new_in_period, fix_rate — ?window=<days> (7 | 30 | 90)
+GET    /api/v1/insights/summary            # aggregate counts for the time window — ?window=<days> (7 | 30 | 90) &fixable=true
 GET    /api/v1/insights/trend              # daily severity breakdown + new/resolved delta — ?window=<days>
 GET    /api/v1/insights/agents/trend       # per-agent daily total findings — ?window=<days>
 GET    /api/v1/insights/top-cves           # most-widespread CVEs ranked by container/agent count — ?window=<days>
@@ -324,20 +354,26 @@ trivyal/
 │   │       │       ├── findings.py
 │   │       │       ├── scans.py
 │   │       │       ├── dashboard.py
+│   │       │       ├── insights.py
+│   │       │       ├── misconfigurations.py
+│   │       │       ├── images.py
 │   │       │       └── settings.py
 │   │       ├── core/                       # Business logic (no FastAPI deps)
 │   │       │   ├── auth.py                 # Token + Ed25519 key management
-│   │       │   ├── aggregator.py           # Processes incoming scan results
+│   │       │   ├── aggregator.py           # Processes incoming Trivy scan results
+│   │       │   ├── misconfig_aggregator.py # Processes incoming misconfig results
 │   │       │   ├── notifier.py             # Webhook notifications
 │   │       │   └── scheduler.py           # Periodic tasks (cleanup, etc.)
 │   │       ├── db/
 │   │       │   ├── models.py               # SQLModel table definitions
 │   │       │   ├── session.py              # Async engine + session factory
 │   │       │   └── migrations/             # Alembic env.py + revision scripts
-│   │       │       └── versions/           # Migration files (0001_initial_schema.py, …)
+│   │       │       └── versions/           # 0001_initial_schema.py, 0002_priorities_feature.py, …
 │   │       ├── schemas/                    # Pydantic request/response models
 │   │       │   ├── agents.py
 │   │       │   ├── findings.py
+│   │       │   ├── misconfigs.py
+│   │       │   ├── images.py
 │   │       │   └── scans.py
 │   │       └── ws/
 │   │           └── manager.py             # WebSocket agent connection manager
@@ -366,6 +402,7 @@ trivyal/
 │   │       │   ├── auth.py                 # Fingerprint + token logic
 │   │       │   ├── docker_client.py        # Discover running containers
 │   │       │   ├── trivy_runner.py         # Invoke Trivy, parse output
+│   │       │   ├── misconfig_runner.py     # Docker API misconfig checks
 │   │       │   ├── cache.py                # Local result cache (JSON on disk)
 │   │       │   └── scheduler.py           # Cron-style scan schedule
 │   │       └── ws/
@@ -412,16 +449,26 @@ trivyal/
 │   │   │   │   ├── hooks/
 │   │   │   │   │   └── useDashboard.ts
 │   │   │   │   └── index.ts
-│   │   │   └── insights/
+│   │   │   ├── insights/
+│   │   │   │   ├── components/
+│   │   │   │   │   ├── InsightsSummaryCards.tsx  # 4 KPI cards (active, crit+high, new, fix rate)
+│   │   │   │   │   ├── VulnerabilityTrendChart.tsx  # severity line chart + scan event markers
+│   │   │   │   │   ├── NewVsResolvedChart.tsx    # diverging bar chart (new red / resolved green)
+│   │   │   │   │   ├── AgentTrendChart.tsx       # per-agent trend lines (8-colour palette)
+│   │   │   │   │   ├── SeverityDonutChart.tsx    # donut with centre total + legend
+│   │   │   │   │   └── TopCvesTable.tsx          # top CVEs ranked by container/agent spread
+│   │   │   │   ├── hooks/
+│   │   │   │   │   └── useInsights.ts            # parallel fetch of all 4 insights endpoints
+│   │   │   │   └── index.ts
+│   │   │   └── priorities/
 │   │   │       ├── components/
-│   │   │       │   ├── InsightsSummaryCards.tsx  # 4 KPI cards (active, crit+high, new, fix rate)
-│   │   │       │   ├── VulnerabilityTrendChart.tsx  # severity line chart + scan event markers
-│   │   │       │   ├── NewVsResolvedChart.tsx    # diverging bar chart (new red / resolved green)
-│   │   │       │   ├── AgentTrendChart.tsx       # per-agent trend lines (8-colour palette)
-│   │   │       │   ├── SeverityDonutChart.tsx    # donut with centre total + legend
-│   │   │       │   └── TopCvesTable.tsx          # top CVEs ranked by container/agent spread
+│   │   │       │   ├── FixTodaySection.tsx        # misconfig findings table with filters
+│   │   │       │   ├── UpdateWhenYouCanSection.tsx # image CVE table with fixable counts
+│   │   │       │   ├── MisconfigStatusBadge.tsx   # status badge (active/fixed/accepted/false_positive)
+│   │   │       │   └── MisconfigDetailDialog.tsx  # detail dialog with accept/false_positive actions
 │   │   │       ├── hooks/
-│   │   │       │   └── useInsights.ts            # parallel fetch of all 4 insights endpoints
+│   │   │       │   ├── useMisconfigs.ts           # paginated misconfig hook
+│   │   │       │   └── useImages.ts               # image CVE summary hook
 │   │   │       └── index.ts
 │   │   ├── pages/                          # Route-level page components
 │   │   │   ├── Dashboard.tsx
@@ -429,6 +476,7 @@ trivyal/
 │   │   │   ├── Findings.tsx
 │   │   │   ├── FindingDetail.tsx
 │   │   │   ├── Insights.tsx
+│   │   │   ├── Priorities.tsx
 │   │   │   ├── ScanHistory.tsx
 │   │   │   └── Settings.tsx
 │   │   ├── lib/
@@ -437,6 +485,9 @@ trivyal/
 │   │   │   │   ├── agents.ts
 │   │   │   │   ├── findings.ts
 │   │   │   │   ├── insights.ts
+│   │   │   │   ├── misconfigs.ts
+│   │   │   │   ├── images.ts
+│   │   │   │   ├── dashboard.ts
 │   │   │   │   ├── scans.ts
 │   │   │   │   └── types.ts                # Shared API response types
 │   │   │   └── utils.ts
@@ -512,10 +563,11 @@ services:
 
 | Page | Description |
 |---|---|
-| **Dashboard** | Summary cards (total CVEs by severity), agent status grid, recent findings feed |
+| **Dashboard** | Summary cards (total CVEs by severity, fixable CVE count, active misconfigs), agent status grid; *Fixable only* toggle to filter to CVEs with upstream fixes available |
+| **Priorities** | Unified action signal: *Fix Today* shows Docker configuration issues (filterable by severity and status, clickable rows open a detail dialog with accept/false_positive actions); *Update When You Can* shows images grouped by name with fixable CVE counts and severity breakdowns, rows link to Findings filtered by image |
 | **Agents** | List of registered agents, status, last scan time, add/remove agent, copy deploy snippet |
-| **Findings** | Full findings table with filters (severity, status, agent, CVE ID, package) and sortable columns (severity, status, CVE ID, package, container, first seen, last seen); includes a **Container** column showing the originating container; bulk accept |
-| **Insights** | Time-windowed analytics (7 / 30 / 90 days): KPI summary cards (active findings, critical+high count, new this period, fix rate); severity trend line chart with scan-event markers; new-vs-resolved diverging bar chart; per-agent trend lines; severity donut chart; top CVEs table ranked by container and agent spread |
+| **Findings** | Full findings table with filters (severity, status, agent, CVE ID, package, fixable, image name) and sortable columns; *Fixable only* toggle; image name badge when filtered from Priorities |
+| **Insights** | Time-windowed analytics (7 / 30 / 90 days): KPI summary cards (active findings, critical+high count, new this period, fix rate); *Fixable only* toggle; severity trend line chart with scan-event markers; new-vs-resolved diverging bar chart; per-agent trend lines; severity donut chart; top CVEs table ranked by container and agent spread |
 | **Scan History** | Timeline of scans per agent/container, diff view (new / fixed per scan) |
 | **Finding Detail** | Single CVE detail — CVE description (sourced from Trivy/NVD), affected containers, fix version, NVD link, risk acceptance form |
 | **Settings** | Notification webhooks, scan schedule override, theme toggle |
