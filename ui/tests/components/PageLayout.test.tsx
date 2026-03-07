@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.mock("@/store/auth", () => ({
   useAuthStore: vi.fn((selector: (s: { logout: () => void }) => unknown) =>
@@ -8,7 +9,12 @@ vi.mock("@/store/auth", () => ({
   ),
 }));
 
+vi.mock("@/lib/api/dashboard", () => ({
+  fetchDashboardSummary: vi.fn(),
+}));
+
 import { PageLayout } from "@/components/common/PageLayout";
+import { fetchDashboardSummary } from "@/lib/api/dashboard";
 
 function renderLayout(initialPath = "/") {
   return render(
@@ -25,6 +31,15 @@ function renderLayout(initialPath = "/") {
 }
 
 describe("PageLayout", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Mock the dashboard summary for all tests
+    vi.mocked(fetchDashboardSummary).mockResolvedValue({
+      misconfig: { total_active: 0 },
+      fixable_cves: 0,
+    });
+  });
+
   it("renders the outlet content", () => {
     renderLayout();
     expect(screen.getByText("Home content")).toBeInTheDocument();
@@ -97,5 +112,78 @@ describe("PageLayout", () => {
     expect(
       within(dialog).getByRole("button", { name: /log out/i }),
     ).toBeInTheDocument();
+  });
+
+  it("fetches priority count on mount", () => {
+    vi.mocked(fetchDashboardSummary).mockResolvedValue({
+      misconfig: { total_active: 5 },
+      fixable_cves: 10,
+    });
+
+    renderLayout();
+
+    expect(fetchDashboardSummary).toHaveBeenCalled();
+  });
+
+  it("renders Priorities nav link", () => {
+    vi.mocked(fetchDashboardSummary).mockResolvedValue({
+      misconfig: { total_active: 0 },
+      fixable_cves: 0,
+    });
+
+    renderLayout();
+
+    const prioritiesLink = screen.getByRole("link", { name: /priorities/i });
+    expect(prioritiesLink).toBeInTheDocument();
+  });
+
+  it("does not render priority count badge when count is zero", () => {
+    vi.mocked(fetchDashboardSummary).mockResolvedValue({
+      misconfig: { total_active: 0 },
+      fixable_cves: 0,
+    });
+
+    renderLayout();
+
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
+
+  it("renders priority count badge when misconfig count is greater than zero", async () => {
+    vi.mocked(fetchDashboardSummary).mockResolvedValue({
+      misconfig: { total_active: 5 },
+      fixable_cves: 0,
+    });
+
+    renderLayout();
+
+    // Wait for the badge to render (count should be 5)
+    const badge = await screen.findByText("5");
+    expect(badge).toBeInTheDocument();
+  });
+
+  it("renders priority count badge when fixable CVEs count is greater than zero", async () => {
+    vi.mocked(fetchDashboardSummary).mockResolvedValue({
+      misconfig: { total_active: 0 },
+      fixable_cves: 10,
+    });
+
+    renderLayout();
+
+    // Wait for the badge to render (count should be 10)
+    const badge = await screen.findByText("10");
+    expect(badge).toBeInTheDocument();
+  });
+
+  it("renders sum of misconfig and fixable CVEs in badge", async () => {
+    vi.mocked(fetchDashboardSummary).mockResolvedValue({
+      misconfig: { total_active: 5 },
+      fixable_cves: 10,
+    });
+
+    renderLayout();
+
+    // Wait for the badge to render (count should be 15)
+    const badge = await screen.findByText("15");
+    expect(badge).toBeInTheDocument();
   });
 });

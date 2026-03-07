@@ -8,6 +8,8 @@ interface UseFindingsOptions {
   cve_id?: string;
   package?: string;
   container_id?: string;
+  image_name?: string;
+  fixable?: boolean;
   sort_by?: string;
   sort_dir?: "asc" | "desc";
   page?: number;
@@ -48,6 +50,8 @@ export function useFindings(options?: UseFindingsOptions) {
   const cveId = options?.cve_id;
   const pkg = options?.package;
   const containerId = options?.container_id;
+  const imageName = options?.image_name;
+  const fixable = options?.fixable;
   const sortBy = options?.sort_by;
   const sortDir = options?.sort_dir;
   const page = options?.page;
@@ -70,6 +74,8 @@ export function useFindings(options?: UseFindingsOptions) {
       cve_id: cveId,
       package: pkg,
       container_id: containerId,
+      image_name: imageName,
+      fixable,
       sort_by: sortBy,
       sort_dir: sortDir,
       page,
@@ -99,6 +105,8 @@ export function useFindings(options?: UseFindingsOptions) {
     cveId,
     pkg,
     containerId,
+    imageName,
+    fixable,
     sortBy,
     sortDir,
     page,

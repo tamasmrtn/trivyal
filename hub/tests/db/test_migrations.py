@@ -24,10 +24,11 @@ class TestMigrations:
                 assert "finding" in tables
                 assert "riskacceptance" in tables
                 assert "notificationsettings" in tables
+                assert "misconfigfinding" in tables
                 assert "alembic_version" in tables
 
                 version = await conn.scalar(text("SELECT version_num FROM alembic_version"))
-                assert version == "0001"
+                assert version == "0002"
         finally:
             await eng.dispose()
 
@@ -48,6 +49,6 @@ class TestMigrations:
         try:
             async with eng.connect() as conn:
                 version = await conn.scalar(text("SELECT version_num FROM alembic_version"))
-                assert version == "0001"
+                assert version == "0002"
         finally:
             await eng.dispose()

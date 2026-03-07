@@ -122,4 +122,66 @@ describe("Findings", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /next/i })).toBeInTheDocument();
   });
+
+  it("renders Fixable only toggle button", async () => {
+    mockFetchFindings.mockResolvedValue(mockPagedFindings);
+    renderFindings();
+    await screen.findByRole("heading", { name: /^findings$/i });
+    expect(
+      screen.getByRole("button", { name: /fixable only/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("displays image name badge when image_name param is set", async () => {
+    mockFetchFindings.mockResolvedValue(mockPagedFindings);
+    render(
+      <MemoryRouter initialEntries={["/?image_name=nginx:latest"]}>
+        <Findings />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", { name: /^findings$/i });
+    expect(screen.getAllByText("nginx:latest").length).toBeGreaterThan(0);
+  });
+
+  it("passes fixable param to API when true", async () => {
+    mockFetchFindings.mockResolvedValue(mockPagedFindings);
+    render(
+      <MemoryRouter initialEntries={["/?fixable=true"]}>
+        <Findings />
+      </MemoryRouter>,
+    );
+    await screen.findByText("CVE-2026-1234");
+    expect(mockFetchFindings).toHaveBeenCalledWith(
+      expect.objectContaining({ fixable: true }),
+    );
+  });
+
+  it("passes image_name param to API when set", async () => {
+    mockFetchFindings.mockResolvedValue(mockPagedFindings);
+    render(
+      <MemoryRouter initialEntries={["/?image_name=nginx:latest"]}>
+        <Findings />
+      </MemoryRouter>,
+    );
+    await screen.findByText("CVE-2026-1234");
+    expect(mockFetchFindings).toHaveBeenCalledWith(
+      expect.objectContaining({ image_name: "nginx:latest" }),
+    );
+  });
+
+  it("passes both fixable and image_name params together", async () => {
+    mockFetchFindings.mockResolvedValue(mockPagedFindings);
+    render(
+      <MemoryRouter initialEntries={["/?image_name=nginx:latest&fixable=true"]}>
+        <Findings />
+      </MemoryRouter>,
+    );
+    await screen.findByText("CVE-2026-1234");
+    expect(mockFetchFindings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        image_name: "nginx:latest",
+        fixable: true,
+      }),
+    );
+  });
 });

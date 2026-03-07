@@ -139,3 +139,9 @@ class SimulatedAgent:
         """
         await self.recv_scan_trigger()
         await self.send_scan_result(scan_data)
+
+    async def send_misconfig_result(self, misconfig_data: dict) -> None:
+        """Send a misconfig_result message to the hub (no trigger required)."""
+        await self._ws.send(
+            json.dumps({"type": "misconfig_result", "data": misconfig_data})
+        )

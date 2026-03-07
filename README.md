@@ -22,7 +22,10 @@ Trivyal is designed for homelabs and small multi-server Docker environments. A l
 
 ### Hub
 - Dashboard showing all connected agents and their status (online / offline / scanning)
-- Aggregated vulnerability view across all hosts — filterable by severity (Critical, High, Medium, Low, Unknown)
+- **Priorities page** — unified action signal split into two sections:
+  - *Fix Today* — Docker configuration issues (privileged containers, host network, missing resource limits, etc.) with severity and status filters
+  - *Update When You Can* — image-centric CVE view grouped by image, showing fixable CVE counts and per-severity breakdowns
+- Aggregated vulnerability view across all hosts — filterable by severity, status, and fixable CVEs
 - Per-host and per-container drill-down
 - Finding timeline — tracks when CVEs appeared and when they were resolved
 - Diff view between scans — highlights new and fixed findings
@@ -37,6 +40,7 @@ Trivyal is designed for homelabs and small multi-server Docker environments. A l
 ### Agent
 - Automatic discovery of all running containers via Docker socket
 - Trivy image scan per container on a configurable schedule (default: nightly)
+- **Docker configuration scanning** — inspects each container via the Docker API and flags misconfigurations (privileged mode, host network/PID/IPC, missing read-only root filesystem, missing resource limits, sensitive volume mounts)
 - On-demand scan trigger from hub
 - Ships results to hub via authenticated WebSocket connection
 - Caches last scan results locally for resilience if hub is temporarily unreachable

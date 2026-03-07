@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { Insights } from "@/pages/Insights";
 import { vi } from "vitest";
 
@@ -86,7 +87,11 @@ describe("Insights page", () => {
     vi.mocked(fetchAgentsTrend).mockReturnValue(new Promise(() => {}));
     vi.mocked(fetchTopCves).mockReturnValue(new Promise(() => {}));
 
-    render(<Insights />);
+    render(
+      <MemoryRouter>
+        <Insights />
+      </MemoryRouter>,
+    );
     expect(screen.getByText(/loading insights/i)).toBeInTheDocument();
   });
 
@@ -98,13 +103,21 @@ describe("Insights page", () => {
     vi.mocked(fetchAgentsTrend).mockResolvedValue(mockAgentsTrend);
     vi.mocked(fetchTopCves).mockResolvedValue(mockTopCves);
 
-    render(<Insights />);
+    render(
+      <MemoryRouter>
+        <Insights />
+      </MemoryRouter>,
+    );
     expect(await screen.findByText("Unauthorized")).toBeInTheDocument();
   });
 
   it("renders the Insights heading", async () => {
     setupMocks();
-    render(<Insights />);
+    render(
+      <MemoryRouter>
+        <Insights />
+      </MemoryRouter>,
+    );
     expect(
       await screen.findByRole("heading", { name: /^insights$/i }),
     ).toBeInTheDocument();
@@ -112,7 +125,11 @@ describe("Insights page", () => {
 
   it("renders time range selector buttons", async () => {
     setupMocks();
-    render(<Insights />);
+    render(
+      <MemoryRouter>
+        <Insights />
+      </MemoryRouter>,
+    );
     await screen.findByRole("heading", { name: /^insights$/i });
     expect(screen.getByRole("button", { name: "7d" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "30d" })).toBeInTheDocument();
@@ -121,7 +138,11 @@ describe("Insights page", () => {
 
   it("renders summary card labels and values", async () => {
     setupMocks();
-    render(<Insights />);
+    render(
+      <MemoryRouter>
+        <Insights />
+      </MemoryRouter>,
+    );
     // Wait for data to load
     expect(await screen.findByText("Active findings")).toBeInTheDocument();
     expect(screen.getByText("Critical + High")).toBeInTheDocument();
@@ -132,11 +153,67 @@ describe("Insights page", () => {
   it("re-fetches when time window changes", async () => {
     setupMocks();
     const user = userEvent.setup();
-    render(<Insights />);
+    render(
+      <MemoryRouter>
+        <Insights />
+      </MemoryRouter>,
+    );
     await screen.findByRole("heading", { name: /^insights$/i });
 
     await user.click(screen.getByRole("button", { name: "7d" }));
 
-    expect(fetchInsightsSummary).toHaveBeenCalledWith(7);
+    expect(fetchInsightsSummary).toHaveBeenCalledWith(7, undefined);
+  });
+
+  it("renders Fixable only toggle button", async () => {
+    setupMocks();
+    render(
+      <MemoryRouter>
+        <Insights />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", { name: /^insights$/i });
+    expect(
+      screen.getByRole("button", { name: /fixable only/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("passes fixable param to API when true", async () => {
+    setupMocks();
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <Insights />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", { name: /^insights$/i });
+
+    // Click fixable button
+    const fixableBtn = screen.getByRole("button", { name: /fixable only/i });
+    await user.click(fixableBtn);
+
+    // Verify API is called with fixable=true
+    expect(fetchInsightsSummary).toHaveBeenCalledWith(30, true);
+  });
+
+  it("fetches with correct params when fixable and window are set", async () => {
+    setupMocks();
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <Insights />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", { name: /^insights$/i });
+
+    // Change window to 7d
+    await user.click(screen.getByRole("button", { name: "7d" }));
+
+    // Click fixable button
+    const fixableBtn = screen.getByRole("button", { name: /fixable only/i });
+    await user.click(fixableBtn);
+
+    // Both params should be passed
+    expect(fetchInsightsSummary).toHaveBeenCalledWith(7, true);
   });
 });

@@ -25,11 +25,19 @@ export interface AgentStatusCounts {
   scanning: number;
 }
 
+export interface MisconfigCounts {
+  high: number;
+  medium: number;
+  total_active: number;
+}
+
 export interface DashboardSummary {
   severity_counts: SeverityCounts;
   agent_status_counts: AgentStatusCounts;
   total_findings: number;
   total_agents: number;
+  fixable_cves: number;
+  misconfig: MisconfigCounts;
 }
 
 export interface AgentResponse {
@@ -134,4 +142,41 @@ export interface TopCve {
   severity: Severity;
   containers: number;
   agents: number;
+}
+
+export type MisconfigStatus =
+  | "active"
+  | "fixed"
+  | "accepted"
+  | "false_positive";
+
+export interface MisconfigFindingResponse {
+  id: string;
+  container_id: string;
+  container_name: string | null;
+  image_name: string | null;
+  check_id: string;
+  severity: Severity;
+  title: string;
+  fix_guideline: string;
+  status: MisconfigStatus;
+  first_seen: string;
+  last_seen: string;
+}
+
+export interface AgentRef {
+  id: string;
+  name: string;
+}
+
+export interface ImageResponse {
+  image_name: string;
+  image_tag: string | null;
+  image_digest: string | null;
+  container_count: number;
+  agents: AgentRef[];
+  total_cves: number;
+  fixable_cves: number;
+  severity_breakdown: SeverityCounts;
+  last_scanned: string | null;
 }

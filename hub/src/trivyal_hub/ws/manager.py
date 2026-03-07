@@ -10,6 +10,7 @@ from sqlmodel import select
 
 from trivyal_hub.core.aggregator import process_scan_result
 from trivyal_hub.core.auth import sign_challenge, verify_token
+from trivyal_hub.core.misconfig_aggregator import process_misconfig_result
 from trivyal_hub.db.models import Agent, AgentStatus
 from trivyal_hub.db.session import get_hub_settings
 
@@ -111,6 +112,13 @@ class ConnectionManager:
                     # change from ONLINE→ONLINE and skips the UPDATE.
                     await session.refresh(agent)
                     agent.status = AgentStatus.ONLINE
+                    agent.last_seen = datetime.now(UTC)
+                    session.add(agent)
+                    await session.commit()
+
+                elif msg_type == "misconfig_result":
+                    misconfig_data = data.get("data", {})
+                    await process_misconfig_result(session, agent.id, misconfig_data)
                     agent.last_seen = datetime.now(UTC)
                     session.add(agent)
                     await session.commit()

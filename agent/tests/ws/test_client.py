@@ -140,6 +140,7 @@ class TestAgentClientScanCycle:
             patch("trivyal_agent.ws.client.list_running_images", return_value=containers),
             patch("trivyal_agent.ws.client.scan_all_images", return_value=[scan_result]),
             patch("trivyal_agent.ws.client.save"),
+            patch("trivyal_agent.ws.client.run_misconfig_checks", return_value=[]),
         ):
             await client._run_scan_cycle(mock_ws)
 
@@ -148,13 +149,54 @@ class TestAgentClientScanCycle:
         assert sent[0]["data"]["ArtifactName"] == "nginx:latest"
         assert sent[0]["container_name"] == "my-nginx"
 
+    async def test_sends_misconfig_results_to_hub(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        mock_ws = AsyncMock()
+        sent = []
+        mock_ws.send = AsyncMock(side_effect=lambda m: sent.append(json.loads(m)))
+
+        scan_result = {"ArtifactName": "nginx:latest", "Results": []}
+        containers = [{"image_name": "nginx:latest", "container_name": "my-nginx"}]
+        misconfig_result = {
+            "container_id": "abc123",
+            "container_name": "my-nginx",
+            "image_name": "nginx:latest",
+            "findings": [
+                {
+                    "check_id": "PRIV_001",
+                    "severity": "HIGH",
+                    "title": "Privileged",
+                    "fix_guideline": "Fix it",
+                }
+            ],
+        }
+
+        with (
+            patch("trivyal_agent.ws.client.list_running_images", return_value=containers),
+            patch("trivyal_agent.ws.client.scan_all_images", return_value=[scan_result]),
+            patch("trivyal_agent.ws.client.save"),
+            patch("trivyal_agent.ws.client.run_misconfig_checks", return_value=[misconfig_result]),
+        ):
+            await client._run_scan_cycle(mock_ws)
+
+        types = [m["type"] for m in sent]
+        assert "scan_result" in types
+        assert "misconfig_result" in types
+        misconfig_msg = next(m for m in sent if m["type"] == "misconfig_result")
+        assert misconfig_msg["data"]["container_id"] == "abc123"
+
     async def test_does_nothing_when_no_containers(self, tmp_path):
         settings = _make_settings(data_dir=str(tmp_path))
         client = AgentClient(settings)
 
         mock_ws = AsyncMock()
 
-        with patch("trivyal_agent.ws.client.list_running_images", return_value=[]):
+        with (
+            patch("trivyal_agent.ws.client.list_running_images", return_value=[]),
+            patch("trivyal_agent.ws.client.run_misconfig_checks", return_value=[]),
+        ):
             await client._run_scan_cycle(mock_ws)
 
         mock_ws.send.assert_not_called()

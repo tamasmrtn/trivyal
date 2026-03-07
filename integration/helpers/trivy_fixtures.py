@@ -72,3 +72,56 @@ SCAN_CLEAN: dict = {
     "ArtifactType": "container_image",
     "Results": [],
 }
+
+# Second image with a single MEDIUM unfixable finding.
+# Used in multi-image tests (sort, filter) alongside SCAN_V1.
+SCAN_REDIS: dict = {
+    "ArtifactName": "redis:7.0",
+    "ArtifactType": "container_image",
+    "Results": [
+        {
+            "Target": "redis:7.0 (debian 12.8)",
+            "Class": "os-pkgs",
+            "Type": "debian",
+            "Vulnerabilities": [
+                {
+                    "VulnerabilityID": "CVE-2024-9010",
+                    "PkgName": "curl",
+                    "InstalledVersion": "7.88.1-10",
+                    "Severity": "MEDIUM",
+                    "Title": "curl: protocol confusion in URL parsing",
+                },
+            ],
+        }
+    ],
+}
+
+# Misconfig scan — plex container with two misconfigurations.
+# PRIV_001 (HIGH): privileged mode
+# NET_001 (MEDIUM): host network mode
+MISCONFIG_V1: dict = {
+    "image_name": "linuxserver/plex:latest",
+    "container_name": "plex",
+    "findings": [
+        {
+            "check_id": "PRIV_001",
+            "severity": "HIGH",
+            "title": "Container running in privileged mode",
+            "fix_guideline": "Remove 'privileged: true' from the container definition.",
+        },
+        {
+            "check_id": "NET_001",
+            "severity": "MEDIUM",
+            "title": "Container using host network mode",
+            "fix_guideline": "Remove 'network_mode: host' from the container definition.",
+        },
+    ],
+}
+
+# Clean misconfig scan for the same plex container — no findings.
+# Sending this after MISCONFIG_V1 causes the hub to mark PRIV_001 and NET_001 as fixed.
+MISCONFIG_CLEAN: dict = {
+    "image_name": "linuxserver/plex:latest",
+    "container_name": "plex",
+    "findings": [],
+}
