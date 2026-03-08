@@ -1,6 +1,7 @@
 .PHONY: init init-hub init-agent init-ui init-hooks init-integration \
         test test-hub test-agent test-ui test-integration \
         dev-hub dev-agent dev-ui lint \
+        up-hub up-agent down-hub down-agent \
         scan-hub scan-agent
 
 # ── Init ──────────────────────────────────────────────────────────────────────
@@ -47,6 +48,20 @@ test-integration:
 	  EXIT=$$?; \
 	  docker compose -f docker-compose.test.yml down -v; \
 	  exit $$EXIT
+
+# ── Compose ───────────────────────────────────────────────────────────────────
+
+up-hub:
+	docker compose -f docker-compose.hub.yml up --build -d
+
+up-agent:
+	docker compose -f docker-compose.agent.yml up --build -d
+
+down-hub:
+	docker compose -f docker-compose.hub.yml down
+
+down-agent:
+	docker compose -f docker-compose.agent.yml down
 
 # ── Dev ───────────────────────────────────────────────────────────────────────
 
