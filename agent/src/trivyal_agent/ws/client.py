@@ -8,7 +8,7 @@ import websockets.asyncio.client as ws_client
 
 from trivyal_agent.config import Settings
 from trivyal_agent.core.auth import get_machine_fingerprint, verify_hub_signature
-from trivyal_agent.core.cache import list_cached, save
+from trivyal_agent.core.cache import clear, list_cached, save
 from trivyal_agent.core.docker_client import collect_host_metadata, list_running_images
 from trivyal_agent.core.misconfig_runner import run_misconfig_checks
 from trivyal_agent.core.scheduler import run_scheduler
@@ -187,7 +187,13 @@ class AgentClient:
             return
         logger.info("Flushing %d cached scan result(s) to hub", len(cached))
         for result in cached:
-            await self._send_scan_result(ws, result)
+            image_name = result.get("ArtifactName", "")
+            try:
+                await ws.send(json.dumps({"type": "scan_result", "data": result, "container_name": None}))
+                logger.info("Sent cached result for %s", image_name)
+                clear(self._settings.data_dir, image_name)
+            except Exception:
+                logger.exception("Failed to flush cached result for %s — will retry on reconnect", image_name)
 
     # ── Heartbeat ─────────────────────────────────────────────────────────────
 
