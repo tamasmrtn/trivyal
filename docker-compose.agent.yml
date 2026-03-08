@@ -8,7 +8,7 @@ name: trivyal-agent
 
 services:
   init-permissions:
-    image: busybox:1.37.0
+    image: busybox:latest
     container_name: ${ENVIRONMENT:-dev}-trivyal-agent-init-permissions
     volumes:
       - ./agent/data:/app/data

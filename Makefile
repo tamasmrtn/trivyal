@@ -55,6 +55,7 @@ up-hub:
 	docker compose -f docker-compose.hub.yml up --build -d
 
 up-agent:
+	set -a && source .env && set +a
 	docker compose -f docker-compose.agent.yml up --build -d
 
 down-hub:

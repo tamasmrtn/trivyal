@@ -3,7 +3,7 @@ name: trivyal-hub
 
 services:
   init-permissions:
-    image: busybox:1.37.0
+    image: busybox:latest
     container_name: ${ENVIRONMENT:-dev}-trivyal-hub-init-permissions
     volumes:
       - ./hub/data:/app/data
