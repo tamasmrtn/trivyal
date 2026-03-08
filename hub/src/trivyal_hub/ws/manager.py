@@ -49,14 +49,18 @@ class ConnectionManager:
         return agent
 
     async def connect(self, agent_id: str, ws: WebSocket):
-        old = self.active.get(agent_id)
+        # Store new ws first so ws1's finally-block disconnect() doesn't evict ws2.
+        old = self.active.pop(agent_id, None)
+        self.active[agent_id] = ws
         if old is not None:
             with contextlib.suppress(Exception):
                 await old.close(code=4000, reason="Superseded by new connection")
-        self.active[agent_id] = ws
 
-    def disconnect(self, agent_id: str):
-        self.active.pop(agent_id, None)
+    def disconnect(self, agent_id: str, ws: WebSocket):
+        # Only remove if this ws is still the registered one; guards against ws1's
+        # finally evicting ws2 when a rapid reconnect races with ongoing processing.
+        if self.active.get(agent_id) is ws:
+            self.active.pop(agent_id)
 
     async def send_scan_trigger(self, agent_id: str) -> bool:
         ws = self.active.get(agent_id)
@@ -67,6 +71,9 @@ class ConnectionManager:
             return True
         except Exception:
             logger.exception("Failed to send scan trigger to agent %s", agent_id)
+            # Remove the broken ws so subsequent receive_json() isn't left with
+            # application_state=DISCONNECTED (set synchronously by Starlette's send()).
+            self.disconnect(agent_id, ws)
             return False
 
     async def handle_connection(self, ws: WebSocket, session: AsyncSession):
@@ -136,12 +143,24 @@ class ConnectionManager:
 
         except WebSocketDisconnect:
             logger.info("Agent %s disconnected", agent.name)
+        except RuntimeError:
+            # Starlette sets application_state=DISCONNECTED synchronously inside
+            # close() before the actual send completes.  If connect() closes the
+            # old WebSocket while this coroutine is awaiting a DB operation, the
+            # next receive_json() check fires RuntimeError instead of raising
+            # WebSocketDisconnect.  Treat it as a normal disconnect.
+            logger.info("Agent %s lost connection", agent.name)
         finally:
-            self.disconnect(agent.id)
-            agent.status = AgentStatus.OFFLINE
-            agent.last_seen = datetime.now(UTC)
-            session.add(agent)
-            await session.commit()
+            self.disconnect(agent.id, ws)
+            # Only mark offline if no replacement ws registered.  If ws2
+            # superseded this connection, ws2 already wrote ONLINE; writing
+            # OFFLINE here would clobber it.  The identity check in disconnect()
+            # tells us: if agent.id is gone from active, this was the last ws.
+            if agent.id not in self.active:
+                agent.status = AgentStatus.OFFLINE
+                agent.last_seen = datetime.now(UTC)
+                session.add(agent)
+                await session.commit()
 
 
 manager = ConnectionManager()
