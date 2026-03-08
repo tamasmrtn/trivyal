@@ -4,6 +4,7 @@ Used for resilience when the hub is temporarily unreachable: the agent stores
 each scan result locally and can re-send them after reconnection.
 """
 
+import contextlib
 import json
 import logging
 import re
@@ -40,6 +41,13 @@ def load(data_dir: Path, image_name: str) -> dict | None:
     except Exception:
         logger.exception("Failed to read cache for %s", image_name)
         return None
+
+
+def clear(data_dir: Path, image_name: str) -> None:
+    """Delete the cached scan result for *image_name* from disk."""
+    cache_file = data_dir / "cache" / _safe_filename(image_name)
+    with contextlib.suppress(FileNotFoundError):
+        cache_file.unlink()
 
 
 def list_cached(data_dir: Path) -> list[dict]:
