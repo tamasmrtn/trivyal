@@ -1,6 +1,6 @@
 [project]
 name = "trivyal-hub"
-version = "0.4.1"
+version = "0.4.2"
 description = "Trivyal hub — central server for container vulnerability scanning"
 requires-python = ">=3.14"
 dependencies = [
