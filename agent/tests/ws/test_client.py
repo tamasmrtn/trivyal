@@ -212,3 +212,109 @@ class TestAgentClientScanCycle:
             await client._run_scan_cycle(mock_ws)
 
         mock_ws.send.assert_not_called()
+
+
+class TestFlushCache:
+    """Tests for _flush_cache — specifically the cache-clearing postcondition.
+
+    Before the fix, _flush_cache sent cached results but never deleted the files.
+    Every reconnect would re-send the same N results indefinitely.
+    """
+
+    def _result(self, image: str) -> dict:
+        return {"ArtifactName": image, "Results": []}
+
+    async def test_deletes_cache_file_after_successful_send(self, tmp_path):
+        from trivyal_agent.core.cache import list_cached, save
+
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+        save(tmp_path, "nginx:latest", self._result("nginx:latest"))
+
+        mock_ws = AsyncMock()
+        await client._flush_cache(mock_ws)
+
+        assert list_cached(tmp_path) == []
+
+    async def test_deletes_all_files_when_all_sends_succeed(self, tmp_path):
+        from trivyal_agent.core.cache import list_cached, save
+
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+        save(tmp_path, "nginx:latest", self._result("nginx:latest"))
+        save(tmp_path, "redis:7", self._result("redis:7"))
+
+        mock_ws = AsyncMock()
+        await client._flush_cache(mock_ws)
+
+        assert list_cached(tmp_path) == []
+
+    async def test_keeps_file_when_send_fails(self, tmp_path):
+        """A failed send must leave the cache file intact so the result is
+        retried on the next reconnect."""
+        from trivyal_agent.core.cache import list_cached, save
+
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+        save(tmp_path, "nginx:latest", self._result("nginx:latest"))
+
+        mock_ws = AsyncMock()
+        mock_ws.send = AsyncMock(side_effect=Exception("connection lost"))
+
+        await client._flush_cache(mock_ws)  # must not raise
+
+        remaining = list_cached(tmp_path)
+        assert len(remaining) == 1
+        assert remaining[0]["ArtifactName"] == "nginx:latest"
+
+    async def test_partial_flush_clears_only_sent_files(self, tmp_path):
+        """If the second send fails, only the first file should be deleted."""
+        from trivyal_agent.core.cache import list_cached, save
+
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+        save(tmp_path, "nginx:latest", self._result("nginx:latest"))
+        save(tmp_path, "redis:7", self._result("redis:7"))
+
+        send_calls = []
+
+        async def _send_side_effect(data):
+            send_calls.append(json.loads(data)["data"]["ArtifactName"])
+            if len(send_calls) == 2:
+                raise Exception("dropped")
+
+        mock_ws = AsyncMock()
+        mock_ws.send = AsyncMock(side_effect=_send_side_effect)
+
+        await client._flush_cache(mock_ws)
+
+        remaining = list_cached(tmp_path)
+        assert len(remaining) == 1  # one deleted, one kept for retry
+
+    async def test_sends_result_with_null_container_name(self, tmp_path):
+        """Cached results were saved without a container_name (only image_name is
+        known at cache time) so the flush must send container_name=null."""
+        from trivyal_agent.core.cache import save
+
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+        save(tmp_path, "nginx:latest", self._result("nginx:latest"))
+
+        sent = []
+        mock_ws = AsyncMock()
+        mock_ws.send = AsyncMock(side_effect=lambda m: sent.append(json.loads(m)))
+
+        await client._flush_cache(mock_ws)
+
+        assert len(sent) == 1
+        assert sent[0]["type"] == "scan_result"
+        assert sent[0]["container_name"] is None
+
+    async def test_noop_when_cache_is_empty(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        mock_ws = AsyncMock()
+        await client._flush_cache(mock_ws)
+
+        mock_ws.send.assert_not_called()
