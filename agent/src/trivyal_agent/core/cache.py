@@ -20,24 +20,25 @@ def _safe_filename(image_name: str) -> str:
     return _SAFE_NAME_RE.sub("_", image_name)[:200] + ".json"
 
 
-def save(data_dir: Path, image_name: str, result: dict) -> None:
+def save(data_dir: Path, image_name: str, result: dict, container_name: str | None = None) -> None:
     """Persist a Trivy scan result for *image_name* to disk."""
     cache_dir = data_dir / "cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_file = cache_dir / _safe_filename(image_name)
     try:
-        cache_file.write_text(json.dumps(result))
+        cache_file.write_text(json.dumps({"result": result, "container_name": container_name}))
     except OSError:
         logger.exception("Failed to write cache for %s", image_name)
 
 
-def load(data_dir: Path, image_name: str) -> dict | None:
+def load(data_dir: Path, image_name: str) -> tuple[dict, str | None] | None:
     """Load the cached Trivy scan result for *image_name*, or None if absent."""
     cache_file = data_dir / "cache" / _safe_filename(image_name)
     if not cache_file.exists():
         return None
     try:
-        return json.loads(cache_file.read_text())
+        entry = json.loads(cache_file.read_text())
+        return entry["result"], entry["container_name"]
     except Exception:
         logger.exception("Failed to read cache for %s", image_name)
         return None
@@ -50,15 +51,16 @@ def clear(data_dir: Path, image_name: str) -> None:
         cache_file.unlink()
 
 
-def list_cached(data_dir: Path) -> list[dict]:
-    """Return all cached scan results from disk."""
+def list_cached(data_dir: Path) -> list[tuple[dict, str | None]]:
+    """Return all cached scan results from disk as (result, container_name) pairs."""
     cache_dir = data_dir / "cache"
     if not cache_dir.exists():
         return []
     results = []
     for cache_file in cache_dir.glob("*.json"):
         try:
-            results.append(json.loads(cache_file.read_text()))
+            entry = json.loads(cache_file.read_text())
+            results.append((entry["result"], entry["container_name"]))
         except Exception:
             logger.exception("Failed to read cache file %s", cache_file)
     return results

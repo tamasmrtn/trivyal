@@ -265,7 +265,7 @@ class TestFlushCache:
 
         remaining = list_cached(tmp_path)
         assert len(remaining) == 1
-        assert remaining[0]["ArtifactName"] == "nginx:latest"
+        assert remaining[0][0]["ArtifactName"] == "nginx:latest"
 
     async def test_partial_flush_clears_only_sent_files(self, tmp_path):
         """If the second send fails, only the first file should be deleted."""
@@ -291,14 +291,13 @@ class TestFlushCache:
         remaining = list_cached(tmp_path)
         assert len(remaining) == 1  # one deleted, one kept for retry
 
-    async def test_sends_result_with_null_container_name(self, tmp_path):
-        """Cached results were saved without a container_name (only image_name is
-        known at cache time) so the flush must send container_name=null."""
+    async def test_flush_preserves_container_name(self, tmp_path):
+        """container_name saved alongside the result must be sent during flush."""
         from trivyal_agent.core.cache import save
 
         settings = _make_settings(data_dir=str(tmp_path))
         client = AgentClient(settings)
-        save(tmp_path, "nginx:latest", self._result("nginx:latest"))
+        save(tmp_path, "nginx:latest", self._result("nginx:latest"), container_name="my-nginx")
 
         sent = []
         mock_ws = AsyncMock()
@@ -308,7 +307,7 @@ class TestFlushCache:
 
         assert len(sent) == 1
         assert sent[0]["type"] == "scan_result"
-        assert sent[0]["container_name"] is None
+        assert sent[0]["container_name"] == "my-nginx"
 
     async def test_noop_when_cache_is_empty(self, tmp_path):
         settings = _make_settings(data_dir=str(tmp_path))

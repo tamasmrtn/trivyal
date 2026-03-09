@@ -86,6 +86,21 @@ class TestProcessScanResult:
         containers = (await session.execute(select(Container))).scalars().all()
         assert len(containers) == 1
 
+    async def test_rebuilt_image_reuses_container(self, session):
+        # Same container_name + image_name but different tag (e.g. after a rebuild).
+        # Should reuse the same Container row and deduplicate findings.
+        agent = await _create_agent(session)
+        rebuilt = {**SAMPLE_TRIVY_OUTPUT, "ArtifactName": "nginx:1.26"}
+        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="my-nginx")
+        await process_scan_result(session, agent.id, rebuilt, container_name="my-nginx")
+
+        containers = (await session.execute(select(Container))).scalars().all()
+        assert len(containers) == 1
+        assert containers[0].image_tag == "1.26"
+
+        findings = (await session.execute(select(Finding))).scalars().all()
+        assert len(findings) == 2
+
     async def test_updates_existing_finding_last_seen(self, session):
         agent = await _create_agent(session)
         await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="my-nginx")

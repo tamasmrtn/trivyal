@@ -153,7 +153,7 @@ class AgentClient:
         for result in results:
             image_name = result.get("ArtifactName", "unknown")
             container_name = container_map.get(image_name)
-            save(self._settings.data_dir, image_name, result)
+            save(self._settings.data_dir, image_name, result, container_name)
             await self._send_scan_result(ws, result, container_name)
 
         # Run misconfig checks on all running containers
@@ -186,10 +186,10 @@ class AgentClient:
         if not cached:
             return
         logger.info("Flushing %d cached scan result(s) to hub", len(cached))
-        for result in cached:
+        for result, container_name in cached:
             image_name = result.get("ArtifactName", "")
             try:
-                await ws.send(json.dumps({"type": "scan_result", "data": result, "container_name": None}))
+                await ws.send(json.dumps({"type": "scan_result", "data": result, "container_name": container_name}))
                 logger.info("Sent cached result for %s", image_name)
                 clear(self._settings.data_dir, image_name)
             except Exception:
