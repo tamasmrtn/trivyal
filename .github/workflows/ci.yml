@@ -92,9 +92,31 @@ jobs:
       - run: npm run test:run
         working-directory: ui
 
+  test-integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    needs: [changes, test-hub, test-agent, test-ui]
+    if: needs.changes.outputs.hub == 'true' || needs.changes.outputs.agent == 'true'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "integration/uv.lock"
+      - run: uv sync
+        working-directory: integration
+      - name: Run integration tests
+        run: |
+          docker compose -f docker-compose.test.yml up --build --wait -d
+          uv run pytest tests/ -v --tb=short
+          EXIT=$?
+          docker compose -f docker-compose.test.yml down -v
+          exit $EXIT
+        working-directory: integration
+
   scan-hub:
     name: Build and scan hub image (Trivy)
-    needs: [changes, test-hub, test-ui]
+    needs: [changes, test-integration]
     if: needs.changes.outputs.hub == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -133,7 +155,7 @@ jobs:
 
   scan-agent:
     name: Build and scan agent image (Trivy)
-    needs: [changes, test-agent]
+    needs: [changes, test-integration]
     if: needs.changes.outputs.agent == 'true'
     runs-on: ubuntu-latest
     permissions:
