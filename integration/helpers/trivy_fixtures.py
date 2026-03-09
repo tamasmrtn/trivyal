@@ -42,6 +42,30 @@ SCAN_V1: dict = {
     ],
 }
 
+# Partial scan — only openssl (libexpat1 absent vs SCAN_V1).
+# Used to verify that findings missing from a follow-up scan are marked FIXED.
+SCAN_V1_PARTIAL: dict = {
+    "ArtifactName": "nginx:1.27",
+    "ArtifactType": "container_image",
+    "Results": [
+        {
+            "Target": "nginx:1.27 (debian 12.8)",
+            "Class": "os-pkgs",
+            "Type": "debian",
+            "Vulnerabilities": [
+                {
+                    "VulnerabilityID": "CVE-2024-9000",
+                    "PkgName": "openssl",
+                    "InstalledVersion": "3.0.11-1~deb12u2",
+                    "FixedVersion": "3.0.11-1~deb12u3",
+                    "Severity": "CRITICAL",
+                    "Title": "OpenSSL: buffer overflow in X.509 parsing",
+                },
+            ],
+        }
+    ],
+}
+
 # Second scan payload — only a MEDIUM finding.
 # Used to verify that re-scanning with different results works correctly.
 SCAN_V2: dict = {

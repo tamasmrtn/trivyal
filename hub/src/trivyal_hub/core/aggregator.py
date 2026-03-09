@@ -95,8 +95,10 @@ async def process_scan_result(
     await session.flush()
 
     # Attach findings to the scan result
+    current_keys: set[tuple[str, str]] = set()
     for finding in findings:
         finding.scan_result_id = scan_result.id
+        current_keys.add((finding.cve_id, finding.package_name))
         # Check for existing active finding with the same CVE+package on this container
         existing_stmt = (
             select(Finding)
@@ -117,6 +119,22 @@ async def process_scan_result(
             session.add(existing)
         else:
             session.add(finding)
+
+    # Mark previously active findings absent from this scan as fixed
+    all_active_stmt = (
+        select(Finding)
+        .join(ScanResult)
+        .where(
+            ScanResult.container_id == container.id,
+            Finding.status == FindingStatus.ACTIVE,
+        )
+    )
+    all_active = (await session.execute(all_active_stmt)).scalars().all()
+    for active in all_active:
+        if (active.cve_id, active.package_name) not in current_keys:
+            active.status = FindingStatus.FIXED
+            active.last_seen = now
+            session.add(active)
 
     await session.commit()
     await session.refresh(scan_result)
