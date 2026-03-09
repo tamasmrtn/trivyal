@@ -3,17 +3,17 @@
 import asyncio
 import logging
 
-import docker  # type: ignore[import-untyped]
+from .docker_socket import _docker
 
 logger = logging.getLogger(__name__)
 
 DANGEROUS_CAPS = {"SYS_ADMIN", "NET_ADMIN", "SYS_PTRACE", "ALL"}
 
 
-def _check_container(container) -> list[dict]:
-    """Run misconfig checks against a single container's HostConfig."""
+def _check_container(container: dict) -> list[dict]:
+    """Run misconfig checks against a single container inspect dict."""
     findings = []
-    host_config = container.attrs.get("HostConfig", {})
+    host_config = container.get("HostConfig", {})
 
     # PRIV_001: Privileged mode
     if host_config.get("Privileged"):
@@ -69,23 +69,23 @@ def _check_container(container) -> list[dict]:
 
 def _scan_all_containers() -> list[dict]:
     """Scan all running containers for misconfigs (sync)."""
-    client = docker.from_env()
-    containers = client.containers.list()
     results = []
-    for container in containers:
-        findings = _check_container(container)
+    for summary in _docker.containers():
+        container_id = summary["Id"]
+        full = _docker.container_inspect(container_id)
+        findings = _check_container(full)
         if not findings:
             continue
-        image_tag = container.image.tags[0] if container.image.tags else container.image.id
+        names = summary.get("Names", [])
+        container_name = names[0].lstrip("/") if names else container_id[:12]
         results.append(
             {
-                "container_id": container.id,
-                "container_name": container.name,
-                "image_name": image_tag,
+                "container_id": container_id,
+                "container_name": container_name,
+                "image_name": summary.get("Image", ""),
                 "findings": findings,
             }
         )
-    client.close()
     return results
 
 

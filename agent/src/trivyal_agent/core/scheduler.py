@@ -1,23 +1,25 @@
 """Cron-style scan scheduler.
 
 Runs a callback on the schedule defined by a cron expression. The scheduler
-computes the next fire time using *croniter* and sleeps until then.
+computes the next fire time using *cronsim* and sleeps until then.
 """
 
 import asyncio
 import logging
 import time
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 
-from croniter import croniter
+from cronsim import CronSim
 
 logger = logging.getLogger(__name__)
 
 
 def next_run_delay(cron_expression: str) -> float:
     """Return seconds until the next cron fire time from *now*."""
-    cron = croniter(cron_expression, time.time())
-    return max(0.0, cron.get_next(float) - time.time())
+    now = datetime.fromtimestamp(time.time(), tz=UTC)
+    next_fire = next(CronSim(cron_expression, now)).timestamp()
+    return max(0.0, next_fire - time.time())
 
 
 async def run_scheduler(

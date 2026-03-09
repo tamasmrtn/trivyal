@@ -152,7 +152,7 @@ The trigger is fire-and-forget from the REST perspective: the `202 Accepted` res
 | **Hub backend** | Python 3.14 + FastAPI | Async, lightweight, great WebSocket support |
 | **Hub database** | SQLite via SQLModel + Alembic | Zero-config, sufficient for homelab scale; Alembic runs migrations automatically at startup |
 | **Hub frontend** | React + shadcn/ui + Tailwind CSS | Excellent built-in dark mode, same UI library family Beszel uses (shadcn-svelte), polished components |
-| **Agent** | Python 3.14 | Matches hub, easy to containerise, simple Docker SDK |
+| **Agent** | Python 3.14 | Matches hub, easy to containerise; talks to Docker Engine API directly over Unix socket via stdlib `http.client` (no third-party dependency) |
 | **Package management** | uv | Fast, reliable Python package and project manager; replaces pip + venv; lockfile-based reproducible installs |
 | **Scanner** | Trivy (CLI, invoked by agent) | Best-in-class container scanning |
 | **Auth** | Ed25519 keypair + token (PyNaCl) | Lightweight, same approach as Beszel |
@@ -400,9 +400,10 @@ trivyal/
 │   │       ├── config.py                   # Settings via pydantic-settings
 │   │       ├── core/
 │   │       │   ├── auth.py                 # Fingerprint + token logic
-│   │       │   ├── docker_client.py        # Discover running containers
+│   │       │   ├── docker_socket.py        # Thin stdlib HTTP client over Docker Unix socket
+│   │       │   ├── docker_client.py        # Discover running containers (uses docker_socket)
 │   │       │   ├── trivy_runner.py         # Invoke Trivy, parse output
-│   │       │   ├── misconfig_runner.py     # Docker API misconfig checks
+│   │       │   ├── misconfig_runner.py     # Docker API misconfig checks (uses docker_socket)
 │   │       │   ├── cache.py                # Local result cache (JSON on disk)
 │   │       │   └── scheduler.py           # Cron-style scan schedule
 │   │       └── ws/
