@@ -12,10 +12,13 @@ services:
     container_name: ${ENVIRONMENT:-dev}-trivyal-agent-init-permissions
     volumes:
       - ./agent/data:/app/data
-    command: chown -R ${PUID:-1000}:${PGID:-1000} /app/data
+    command: sh -c "chmod -R u+rwX /app/data && chown -R ${PUID:-1000}:${PGID:-1000} /app/data"
     user: root
     cap_add:
       - CHOWN
+      - DAC_OVERRIDE
+      - DAC_READ_SEARCH
+      - FOWNER
     cap_drop:
       - ALL
     security_opt:
