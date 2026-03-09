@@ -126,9 +126,9 @@ export function PageLayout() {
       {/* Desktop sidebar */}
       <aside className="bg-card hidden w-56 flex-col border-r sm:flex">
         <div className="flex h-14 items-center border-b px-4">
-          <span className="font-mono text-lg font-bold tracking-wide">
+          <NavLink to="/" className="font-mono text-lg font-bold tracking-wide">
             trivy<span className="text-primary">al</span>
-          </span>
+          </NavLink>
         </div>
         <NavContents
           dark={dark}
@@ -141,9 +141,9 @@ export function PageLayout() {
       {/* Mobile top header */}
       <div className="flex flex-1 flex-col sm:contents">
         <header className="bg-card flex h-14 items-center justify-between border-b px-4 sm:hidden">
-          <span className="font-mono text-lg font-bold tracking-wide">
+          <NavLink to="/" className="font-mono text-lg font-bold tracking-wide">
             trivy<span className="text-primary">al</span>
-          </span>
+          </NavLink>
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" title="Open menu">
@@ -152,9 +152,12 @@ export function PageLayout() {
             </SheetTrigger>
             <SheetContent>
               <div className="flex h-14 items-center border-b px-4">
-                <span className="font-mono text-lg font-bold tracking-wide">
+                <NavLink
+                  to="/"
+                  className="font-mono text-lg font-bold tracking-wide"
+                >
                   trivy<span className="text-primary">al</span>
-                </span>
+                </NavLink>
               </div>
               <NavContents
                 dark={dark}
