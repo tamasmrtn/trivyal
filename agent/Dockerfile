@@ -36,21 +36,16 @@ WORKDIR /app
 # Copy only the populated virtualenv — uv itself is not copied
 COPY --from=python-builder /app/.venv /app/.venv
 
-# Create non-root group that matches the host Docker socket GID at runtime.
-# Default 999 covers most Debian/Ubuntu hosts; override via group_add in compose.
-RUN apk upgrade --no-cache && \
-    apk add --no-cache su-exec && \
+RUN pip uninstall -y pip && \
+    apk upgrade --no-cache && \
     addgroup -S trivyal && \
     adduser -S -G trivyal -H trivyal && \
     mkdir -p /app/data && \
     chown -R trivyal:trivyal /app/data
 
-COPY agent/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 HEALTHCHECK --interval=60s --timeout=5s --start-period=15s --retries=3 \
     CMD wget -qO- http://localhost:8100/health || exit 1
 
-# Entrypoint runs as root to fix bind-mount ownership, then drops to trivyal
-ENTRYPOINT ["/entrypoint.sh"]
+USER trivyal
+
 CMD ["python", "-m", "trivyal_agent.main"]

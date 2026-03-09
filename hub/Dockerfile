@@ -50,23 +50,20 @@ COPY --from=python-builder /app/.venv /app/.venv
 # Copy the compiled UI for FastAPI to serve as static files
 COPY --from=ui-builder /ui/dist ./static
 
-RUN apk upgrade --no-cache && \
-    apk add --no-cache su-exec && \
+RUN pip uninstall -y pip && \
+    apk upgrade --no-cache && \
     addgroup -S trivyal && \
     adduser -S -G trivyal -H trivyal && \
     mkdir -p /app/data && \
     chown -R trivyal:trivyal /app/data
-
-COPY hub/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
 
 EXPOSE 8099
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD wget -qO- http://localhost:8099/api/health || exit 1
 
-# Entrypoint runs as root to fix bind-mount ownership, then drops to trivyal
-ENTRYPOINT ["/entrypoint.sh"]
+USER trivyal
+
 CMD ["uvicorn", "trivyal_hub.main:app", \
      "--host", "0.0.0.0", "--port", "8099", \
      "--no-access-log"]
