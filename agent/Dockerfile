@@ -25,6 +25,7 @@ FROM python:3.14-alpine AS agent
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    PYTHONOPTIMIZE=1 \
     PATH="/app/.venv/bin:$PATH" \
     TRIVY_CACHE_DIR=/app/data/trivy-cache
 
