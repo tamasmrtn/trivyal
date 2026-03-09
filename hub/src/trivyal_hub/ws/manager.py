@@ -3,7 +3,6 @@
 import contextlib
 import logging
 import secrets
-from datetime import UTC, datetime
 
 from fastapi import WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +11,7 @@ from sqlmodel import select
 from trivyal_hub.core.aggregator import process_scan_result
 from trivyal_hub.core.auth import sign_challenge, verify_token
 from trivyal_hub.core.misconfig_aggregator import process_misconfig_result
-from trivyal_hub.db.models import Agent, AgentStatus
+from trivyal_hub.db.models import Agent, AgentStatus, _now
 from trivyal_hub.db.session import get_hub_settings
 
 logger = logging.getLogger(__name__)
@@ -87,7 +86,7 @@ class ConnectionManager:
 
         await self.connect(agent.id, ws)
         agent.status = AgentStatus.ONLINE
-        agent.last_seen = datetime.now(UTC)
+        agent.last_seen = _now()
         session.add(agent)
         await session.commit()
 
@@ -110,7 +109,7 @@ class ConnectionManager:
 
                 elif msg_type == "host_metadata":
                     agent.host_metadata = data.get("metadata")
-                    agent.last_seen = datetime.now(UTC)
+                    agent.last_seen = _now()
                     session.add(agent)
                     await session.commit()
 
@@ -124,19 +123,19 @@ class ConnectionManager:
                     # change from ONLINE→ONLINE and skips the UPDATE.
                     await session.refresh(agent)
                     agent.status = AgentStatus.ONLINE
-                    agent.last_seen = datetime.now(UTC)
+                    agent.last_seen = _now()
                     session.add(agent)
                     await session.commit()
 
                 elif msg_type == "misconfig_result":
                     misconfig_data = data.get("data", {})
                     await process_misconfig_result(session, agent.id, misconfig_data)
-                    agent.last_seen = datetime.now(UTC)
+                    agent.last_seen = _now()
                     session.add(agent)
                     await session.commit()
 
                 elif msg_type == "heartbeat":
-                    agent.last_seen = datetime.now(UTC)
+                    agent.last_seen = _now()
                     session.add(agent)
                     await session.commit()
                     await ws.send_json({"type": "heartbeat_ack"})
@@ -158,7 +157,7 @@ class ConnectionManager:
             # tells us: if agent.id is gone from active, this was the last ws.
             if agent.id not in self.active:
                 agent.status = AgentStatus.OFFLINE
-                agent.last_seen = datetime.now(UTC)
+                agent.last_seen = _now()
                 session.add(agent)
                 await session.commit()
 

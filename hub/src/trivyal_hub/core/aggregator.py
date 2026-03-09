@@ -1,7 +1,5 @@
 """Processes incoming scan results from agents."""
 
-from datetime import UTC, datetime
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -11,6 +9,7 @@ from trivyal_hub.db.models import (
     FindingStatus,
     ScanResult,
     Severity,
+    _now,
 )
 
 
@@ -21,7 +20,7 @@ async def process_scan_result(
     container_name: str | None = None,
 ) -> ScanResult:
     """Ingest a Trivy scan result: upsert containers, create scan record, upsert findings."""
-    now = datetime.now(UTC)
+    now = _now()
 
     raw_image_name = scan_data.get("ArtifactName", "unknown")
     if ":" in raw_image_name:

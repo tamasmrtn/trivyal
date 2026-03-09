@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from trivyal_hub.api.deps import require_auth
-from trivyal_hub.db.models import NotificationSettings, _utcnow
+from trivyal_hub.db.models import NotificationSettings, _now
 from trivyal_hub.db.session import get_session
 
 router = APIRouter(prefix="/settings", tags=["settings"], dependencies=[Depends(require_auth)])
@@ -51,7 +51,7 @@ async def update_settings(
     update_data = body.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(ns, key, value)
-    ns.updated_at = _utcnow()
+    ns.updated_at = _now()
     session.add(ns)
     await session.commit()
     await session.refresh(ns)

@@ -1,6 +1,6 @@
 """Insights analytics endpoints."""
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, or_, select
 
 from trivyal_hub.api.deps import require_auth
-from trivyal_hub.db.models import Agent, Finding, FindingStatus, ScanResult, Severity
+from trivyal_hub.db.models import Agent, Finding, FindingStatus, ScanResult, Severity, _now
 from trivyal_hub.db.session import get_session
 
 router = APIRouter(prefix="/insights", tags=["insights"], dependencies=[Depends(require_auth)])
@@ -64,12 +64,12 @@ class TopCve(BaseModel):
 
 
 def _window_start(window: int) -> datetime:
-    return datetime.now(UTC) - timedelta(days=window)
+    return _now() - timedelta(days=window)
 
 
 def _day_range(window: int) -> list[date]:
     start = _window_start(window).date()
-    today = datetime.now(UTC).date()
+    today = _now().date()
     days = []
     current = start
     while current <= today:

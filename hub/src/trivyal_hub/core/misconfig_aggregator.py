@@ -1,7 +1,5 @@
 """Processes incoming misconfig results from agents."""
 
-from datetime import UTC, datetime
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -10,6 +8,7 @@ from trivyal_hub.db.models import (
     MisconfigFinding,
     MisconfigStatus,
     Severity,
+    _now,
 )
 
 
@@ -19,7 +18,7 @@ async def process_misconfig_result(
     data: dict,
 ) -> list[MisconfigFinding]:
     """Ingest a misconfig_result message: upsert container, upsert misconfig findings."""
-    now = datetime.now(UTC)
+    now = _now()
 
     image_name = data.get("image_name", "unknown")
     container_name = data.get("container_name")
