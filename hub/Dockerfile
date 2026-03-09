@@ -39,6 +39,7 @@ FROM python:3.14-alpine AS hub
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    PYTHONOPTIMIZE=1 \
     # Activate the venv by prepending it to PATH — no `uv run` needed
     PATH="/app/.venv/bin:$PATH"
 

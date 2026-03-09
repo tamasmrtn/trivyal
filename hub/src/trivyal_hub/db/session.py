@@ -13,7 +13,7 @@ from trivyal_hub.config import settings
 from trivyal_hub.core.auth import generate_keypair
 from trivyal_hub.db.models import HubSettings
 
-engine = create_async_engine(settings.db_url, echo=False)
+engine = create_async_engine(settings.db_url, echo=False, pool_size=1, max_overflow=0)
 
 _MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 
