@@ -99,13 +99,13 @@ class TestInsightsTrend:
     async def test_today_new_count(self, hub, scan_result):
         r = await hub.get("/api/v1/insights/trend", params={"window": 7})
         today = r.json()["days"][-1]
-        # Both findings are new today
-        assert today["new"] >= 2
+        # Both findings are active today
+        assert today["critical"] + today["high"] + today["medium"] + today["low"] >= 2
 
     async def test_day_bucket_shape(self, hub):
         r = await hub.get("/api/v1/insights/trend", params={"window": 3})
         bucket = r.json()["days"][0]
-        for field in ("date", "critical", "high", "medium", "low", "new", "resolved"):
+        for field in ("date", "critical", "high", "medium", "low"):
             assert field in bucket, f"Missing field: {field}"
 
 

@@ -1,13 +1,13 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SummaryCards, useDashboard } from "@/features/dashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wrench, ArrowUpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFixable } from "@/lib/hooks/useFixable";
 
 export function Dashboard() {
-  const [fixable, setFixable] = useState(false);
+  const [fixable, toggleFixable] = useFixable();
   const { data, loading, error } = useDashboard(fixable || undefined);
   const navigate = useNavigate();
 
@@ -36,7 +36,7 @@ export function Dashboard() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setFixable(!fixable)}
+          onClick={toggleFixable}
           className={cn(fixable && "bg-primary text-primary-foreground")}
         >
           Fixable only

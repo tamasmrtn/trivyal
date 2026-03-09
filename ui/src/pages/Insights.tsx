@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useFixable } from "@/lib/hooks/useFixable";
 import {
   useInsights,
   InsightsSummaryCards,
   VulnerabilityTrendChart,
-  NewVsResolvedChart,
   AgentTrendChart,
   SeverityDonutChart,
   TopCvesTable,
 } from "@/features/insights";
+import { useAgents } from "@/features/agents";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -19,20 +19,15 @@ const WINDOWS = [
 ];
 
 export function Insights() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const [window, setWindow] = useState(30);
-  const fixable = searchParams.get("fixable") === "true";
-  const { data, loading, error } = useInsights(window, fixable || undefined);
-
-  function toggleFixable() {
-    const next = new URLSearchParams(searchParams);
-    if (fixable) {
-      next.delete("fixable");
-    } else {
-      next.set("fixable", "true");
-    }
-    setSearchParams(next);
-  }
+  const [agentId, setAgentId] = useState<string | undefined>();
+  const [fixable, toggleFixable] = useFixable();
+  const { data: agents } = useAgents({ page_size: 200 });
+  const { data, loading, error } = useInsights(
+    window,
+    fixable || undefined,
+    agentId,
+  );
 
   if (loading) {
     return (
@@ -69,6 +64,19 @@ export function Insights() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Insights</h1>
         <div className="flex items-center gap-3">
+          <select
+            value={agentId ?? ""}
+            onChange={(e) => setAgentId(e.target.value || undefined)}
+            aria-label="Filter by agent"
+            className="bg-input text-foreground focus:ring-ring rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+          >
+            <option value="">All Agents</option>
+            {agents.map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.name}
+              </option>
+            ))}
+          </select>
           <div className="flex items-center gap-1 rounded-md border p-1">
             {WINDOWS.map(({ label, value }) => (
               <button
@@ -101,9 +109,6 @@ export function Insights() {
 
       {/* Vulnerability trend */}
       <VulnerabilityTrendChart data={data.trend} />
-
-      {/* New vs. resolved */}
-      <NewVsResolvedChart days={data.trend.days} />
 
       {/* Per-agent trend */}
       <AgentTrendChart data={data.agentsTrend} />

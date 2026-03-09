@@ -5,6 +5,7 @@ import type { FindingResponse, FindingStatus, Severity } from "@/lib/api/types";
 interface UseFindingsOptions {
   severity?: Severity;
   status?: FindingStatus;
+  agent_id?: string;
   cve_id?: string;
   package?: string;
   container_id?: string;
@@ -47,6 +48,7 @@ function reducer(state: State, action: Action): State {
 export function useFindings(options?: UseFindingsOptions) {
   const severity = options?.severity;
   const status = options?.status;
+  const agentId = options?.agent_id;
   const cveId = options?.cve_id;
   const pkg = options?.package;
   const containerId = options?.container_id;
@@ -71,6 +73,7 @@ export function useFindings(options?: UseFindingsOptions) {
     fetchFindings({
       severity,
       status,
+      agent_id: agentId,
       cve_id: cveId,
       package: pkg,
       container_id: containerId,
@@ -102,6 +105,7 @@ export function useFindings(options?: UseFindingsOptions) {
   }, [
     severity,
     status,
+    agentId,
     cveId,
     pkg,
     containerId,

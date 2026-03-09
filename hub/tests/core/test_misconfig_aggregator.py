@@ -105,6 +105,27 @@ class TestProcessMisconfigResult:
         misconfigs = (await session.execute(select(MisconfigFinding))).scalars().all()
         assert all(m.status == MisconfigStatus.FIXED for m in misconfigs)
 
+    async def test_no_duplicate_when_finding_is_accepted(self, session):
+        """Regression: accepted finding + new scan should not create a duplicate ACTIVE row."""
+        agent = await _create_agent(session)
+        await process_misconfig_result(session, agent.id, SAMPLE_MISCONFIG_DATA)
+
+        # Simulate user accepting one finding
+        net = (
+            await session.execute(select(MisconfigFinding).where(MisconfigFinding.check_id == "NET_001"))
+        ).scalar_one()
+        net.status = MisconfigStatus.ACCEPTED
+        session.add(net)
+        await session.commit()
+
+        # Next scan with same findings — must not create a new ACTIVE NET_001
+        await process_misconfig_result(session, agent.id, SAMPLE_MISCONFIG_DATA)
+
+        all_misconfigs = (await session.execute(select(MisconfigFinding))).scalars().all()
+        net_findings = [m for m in all_misconfigs if m.check_id == "NET_001"]
+        assert len(net_findings) == 1
+        assert net_findings[0].status == MisconfigStatus.ACCEPTED
+
     async def test_handles_image_name_without_tag(self, session):
         agent = await _create_agent(session)
         data = {

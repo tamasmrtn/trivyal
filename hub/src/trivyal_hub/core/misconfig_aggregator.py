@@ -65,11 +65,12 @@ async def process_misconfig_result(
             sev = "MEDIUM"
         current_check_ids.add(check_id)
 
-        # Look for existing active finding with same (container_id, check_id)
+        # Look for any non-fixed finding with same (container_id, check_id).
+        # Checking only ACTIVE would create duplicates when a finding is ACCEPTED.
         existing_stmt = select(MisconfigFinding).where(
             MisconfigFinding.container_id == container.id,
             MisconfigFinding.check_id == check_id,
-            MisconfigFinding.status == MisconfigStatus.ACTIVE,
+            MisconfigFinding.status != MisconfigStatus.FIXED,
         )
         existing = (await session.execute(existing_stmt)).scalar_one_or_none()
 

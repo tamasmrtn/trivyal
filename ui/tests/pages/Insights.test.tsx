@@ -162,7 +162,7 @@ describe("Insights page", () => {
 
     await user.click(screen.getByRole("button", { name: "7d" }));
 
-    expect(fetchInsightsSummary).toHaveBeenCalledWith(7, undefined);
+    expect(fetchInsightsSummary).toHaveBeenCalledWith(7, undefined, undefined);
   });
 
   it("renders Fixable only toggle button", async () => {
@@ -193,7 +193,7 @@ describe("Insights page", () => {
     await user.click(fixableBtn);
 
     // Verify API is called with fixable=true
-    expect(fetchInsightsSummary).toHaveBeenCalledWith(30, true);
+    expect(fetchInsightsSummary).toHaveBeenCalledWith(30, true, undefined);
   });
 
   it("fetches with correct params when fixable and window are set", async () => {
@@ -214,6 +214,6 @@ describe("Insights page", () => {
     await user.click(fixableBtn);
 
     // Both params should be passed
-    expect(fetchInsightsSummary).toHaveBeenCalledWith(7, true);
+    expect(fetchInsightsSummary).toHaveBeenCalledWith(7, true, undefined);
   });
 });

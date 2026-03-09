@@ -51,11 +51,4 @@ describe("SummaryCards", () => {
     expect(screen.getByText("Offline")).toBeInTheDocument();
     expect(screen.getByText("Scanning")).toBeInTheDocument();
   });
-
-  it("renders total findings and agents", () => {
-    expect(screen.getByText("50")).toBeInTheDocument();
-    expect(screen.getByText("7")).toBeInTheDocument();
-    expect(screen.getByText("Total Active Findings")).toBeInTheDocument();
-    expect(screen.getByText("Total Agents")).toBeInTheDocument();
-  });
 });

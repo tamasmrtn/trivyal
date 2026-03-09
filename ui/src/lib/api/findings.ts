@@ -28,6 +28,7 @@ export interface RiskAcceptanceResponse {
 export function fetchFindings(params?: {
   severity?: Severity;
   status?: FindingStatus;
+  agent_id?: string;
   cve_id?: string;
   package?: string;
   container_id?: string;
@@ -41,6 +42,7 @@ export function fetchFindings(params?: {
   const search = new URLSearchParams();
   if (params?.severity) search.set("severity", params.severity);
   if (params?.status) search.set("status", params.status);
+  if (params?.agent_id) search.set("agent_id", params.agent_id);
   if (params?.cve_id) search.set("cve_id", params.cve_id);
   if (params?.package) search.set("package", params.package);
   if (params?.container_id) search.set("container_id", params.container_id);

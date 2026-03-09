@@ -124,19 +124,6 @@ describe("UpdateWhenYouCanSection", () => {
     expect(screen.getByText("CRITICAL")).toBeInTheDocument();
   });
 
-  it("renders agent names", () => {
-    vi.mocked(useImages).mockReturnValue({
-      data: [mockImage],
-      total: 1,
-      loading: false,
-      error: null,
-      refetch: vi.fn(),
-    });
-
-    renderWithRouter(<UpdateWhenYouCanSection />);
-    expect(screen.getByText("prod-01")).toBeInTheDocument();
-  });
-
   it("shows empty state when no images", () => {
     vi.mocked(useImages).mockReturnValue({
       data: [],
@@ -188,19 +175,5 @@ describe("UpdateWhenYouCanSection", () => {
 
     // Navigation happens through the row click - verify the image appears in the table
     expect(screen.getByText("nginx:latest")).toBeInTheDocument();
-  });
-
-  it("displays last scanned timestamp", () => {
-    vi.mocked(useImages).mockReturnValue({
-      data: [mockImage],
-      total: 1,
-      loading: false,
-      error: null,
-      refetch: vi.fn(),
-    });
-
-    renderWithRouter(<UpdateWhenYouCanSection />);
-    // Check for the year part of the timestamp (locale-independent)
-    expect(screen.getByText(/2026/)).toBeInTheDocument();
   });
 });

@@ -119,7 +119,9 @@ export function AgentTrendChart({ data }: Props) {
                 border: "1px solid var(--color-border)",
                 borderRadius: 6,
                 fontSize: 12,
+                color: "var(--color-foreground)",
               }}
+              labelStyle={{ color: "var(--color-foreground)" }}
               labelFormatter={(label: unknown) => formatDate(label as string)}
             />
             {data.agents.map((agent, i) => (

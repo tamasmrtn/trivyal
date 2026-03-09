@@ -6,7 +6,6 @@ import {
   AlertCircle,
   Info,
   HelpCircle,
-  Server,
   Wifi,
   WifiOff,
   Loader,
@@ -103,33 +102,6 @@ export function SummaryCards({ data }: SummaryCardsProps) {
               </CardContent>
             </Card>
           ))}
-        </div>
-      </section>
-
-      <section>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Active Findings
-              </CardTitle>
-              <ShieldAlert className="text-muted-foreground h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{data.total_findings}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Agents
-              </CardTitle>
-              <Server className="text-muted-foreground h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{data.total_agents}</div>
-            </CardContent>
-          </Card>
         </div>
       </section>
     </div>

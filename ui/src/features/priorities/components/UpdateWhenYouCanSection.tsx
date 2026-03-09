@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useFixable } from "@/lib/hooks/useFixable";
 import { PackageCheck } from "lucide-react";
+import { useAgents } from "@/features/agents";
 import {
   Table,
   TableBody,
@@ -15,15 +17,14 @@ import { cn } from "@/lib/utils";
 import { useImages } from "../hooks/useImages";
 import type { Severity } from "@/lib/api/types";
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString();
-}
-
 export function UpdateWhenYouCanSection() {
-  const [fixableOnly, setFixableOnly] = useState(true);
+  const [fixableOnly, toggleFixableOnly] = useFixable();
+  const [agentId, setAgentId] = useState<string | undefined>();
   const navigate = useNavigate();
 
+  const { data: agents } = useAgents({ page_size: 200 });
   const { data, total, loading, error } = useImages({
+    agent_id: agentId,
     fixable: fixableOnly,
     sort_by: "fixable_cves",
     sort_dir: "desc",
@@ -39,11 +40,24 @@ export function UpdateWhenYouCanSection() {
         </p>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
+        <select
+          value={agentId ?? ""}
+          onChange={(e) => setAgentId(e.target.value || undefined)}
+          aria-label="Filter by agent"
+          className="bg-input text-foreground focus:ring-ring rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+        >
+          <option value="">All Agents</option>
+          {agents.map((agent) => (
+            <option key={agent.id} value={agent.id}>
+              {agent.name}
+            </option>
+          ))}
+        </select>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setFixableOnly(!fixableOnly)}
+          onClick={toggleFixableOnly}
           className={cn(fixableOnly && "bg-primary text-primary-foreground")}
         >
           Fixable only
@@ -92,12 +106,6 @@ export function UpdateWhenYouCanSection() {
                 <TableHead className="text-muted-foreground hidden text-xs tracking-wide uppercase sm:table-cell">
                   Severity
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden text-xs tracking-wide uppercase md:table-cell">
-                  Agents
-                </TableHead>
-                <TableHead className="text-muted-foreground hidden text-xs tracking-wide uppercase sm:table-cell">
-                  Last Scanned
-                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -143,12 +151,6 @@ export function UpdateWhenYouCanSection() {
                           ),
                       )}
                     </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground hidden text-xs md:table-cell">
-                    {image.agents.map((a) => a.name).join(", ")}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground hidden text-xs sm:table-cell">
-                    {image.last_scanned ? formatDate(image.last_scanned) : "—"}
                   </TableCell>
                 </TableRow>
               ))}
