@@ -14,7 +14,9 @@ Covers the three bug-prone paths discovered in the fix:
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi import WebSocketDisconnect
-from trivyal_hub.db.models import AgentStatus
+from sqlmodel import select
+from trivyal_hub.core.auth import generate_token, hash_token
+from trivyal_hub.db.models import Agent, AgentStatus, Finding, FindingStatus
 from trivyal_hub.ws.manager import ConnectionManager
 
 
@@ -213,3 +215,104 @@ class TestHandleConnection:
         assert manager.active.get("agent-1") is ws2
         # ws1's finally must NOT have written OFFLINE — ws2 owns the agent now
         assert agent.status != AgentStatus.OFFLINE
+
+
+_SCAN_RESULT_1 = {
+    "ArtifactName": "nginx:latest",
+    "Results": [
+        {
+            "Target": "nginx:latest",
+            "Vulnerabilities": [
+                {
+                    "VulnerabilityID": "CVE-2024-1000",
+                    "PkgName": "libssl",
+                    "InstalledVersion": "1.1.1",
+                    "Severity": "CRITICAL",
+                },
+                {
+                    "VulnerabilityID": "CVE-2024-2000",
+                    "PkgName": "zlib",
+                    "InstalledVersion": "1.2.11",
+                    "Severity": "HIGH",
+                },
+            ],
+        }
+    ],
+}
+
+_SCAN_RESULT_2 = {
+    "ArtifactName": "nginx:latest",
+    "Results": [
+        {
+            "Target": "nginx:latest",
+            "Vulnerabilities": [
+                {
+                    "VulnerabilityID": "CVE-2024-1000",
+                    "PkgName": "libssl",
+                    "InstalledVersion": "1.1.1",
+                    "Severity": "CRITICAL",
+                },
+            ],
+        }
+    ],
+}
+
+
+class TestScanResultFIXEDIntegration:
+    """Integration tests: two sequential scan_result messages through handle_connection.
+
+    Exercises process_scan_result via the full WebSocket lifecycle so that the
+    FIXED reconciliation logic is covered end-to-end (WS → aggregator → DB).
+    """
+
+    async def _create_agent(self, session) -> Agent:
+        agent = Agent(name="ws-test-agent", token_hash=hash_token(generate_token()))
+        session.add(agent)
+        await session.commit()
+        await session.refresh(agent)
+        return agent
+
+    async def test_absent_finding_marked_fixed_via_ws(self, session):
+        """A finding present in scan 1 but absent from scan 2 must become FIXED."""
+        manager = ConnectionManager()
+        real_agent = await self._create_agent(session)
+
+        ws = AsyncMock()
+        ws.receive_json = AsyncMock(
+            side_effect=[
+                {"type": "scan_result", "data": _SCAN_RESULT_1, "container_name": "my-nginx"},
+                {"type": "scan_result", "data": _SCAN_RESULT_2, "container_name": "my-nginx"},
+                WebSocketDisconnect(code=1000),
+            ]
+        )
+
+        with patch.object(manager, "authenticate", new=AsyncMock(return_value=real_agent)):
+            await manager.handle_connection(ws, session)
+
+        findings = (await session.execute(select(Finding))).scalars().all()
+        libssl = next(f for f in findings if f.package_name == "libssl")
+        zlib = next(f for f in findings if f.package_name == "zlib")
+        assert libssl.status == FindingStatus.ACTIVE
+        assert zlib.status == FindingStatus.FIXED
+
+    async def test_empty_scan_marks_all_findings_fixed_via_ws(self, session):
+        """An empty scan result should mark all previously active findings as FIXED."""
+        manager = ConnectionManager()
+        real_agent = await self._create_agent(session)
+
+        empty_scan = {**_SCAN_RESULT_1, "Results": []}
+        ws = AsyncMock()
+        ws.receive_json = AsyncMock(
+            side_effect=[
+                {"type": "scan_result", "data": _SCAN_RESULT_1, "container_name": "my-nginx"},
+                {"type": "scan_result", "data": empty_scan, "container_name": "my-nginx"},
+                WebSocketDisconnect(code=1000),
+            ]
+        )
+
+        with patch.object(manager, "authenticate", new=AsyncMock(return_value=real_agent)):
+            await manager.handle_connection(ws, session)
+
+        findings = (await session.execute(select(Finding))).scalars().all()
+        assert len(findings) == 2
+        assert all(f.status == FindingStatus.FIXED for f in findings)

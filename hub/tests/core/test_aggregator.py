@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from trivyal_hub.core.aggregator import process_scan_result
 from trivyal_hub.core.auth import generate_token, hash_token
-from trivyal_hub.db.models import Agent, Container, Finding
+from trivyal_hub.db.models import Agent, Container, Finding, FindingStatus
 
 
 async def _create_agent(session: AsyncSession) -> Agent:
@@ -109,3 +109,78 @@ class TestProcessScanResult:
         findings = (await session.execute(select(Finding))).scalars().all()
         # Should still have 2 findings (not 4), existing ones get updated
         assert len(findings) == 2
+
+    async def test_marks_absent_finding_as_fixed(self, session):
+        agent = await _create_agent(session)
+        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="my-nginx")
+
+        # Second scan with only CVE-2024-1000/libssl (CVE-2024-2000/zlib removed)
+        partial_output = {
+            **SAMPLE_TRIVY_OUTPUT,
+            "Results": [
+                {
+                    "Target": "nginx:latest",
+                    "Vulnerabilities": [SAMPLE_TRIVY_OUTPUT["Results"][0]["Vulnerabilities"][0]],
+                }
+            ],
+        }
+        await process_scan_result(session, agent.id, partial_output, container_name="my-nginx")
+
+        findings = (await session.execute(select(Finding))).scalars().all()
+        libssl = next(f for f in findings if f.package_name == "libssl")
+        zlib = next(f for f in findings if f.package_name == "zlib")
+        assert libssl.status == FindingStatus.ACTIVE
+        assert zlib.status == FindingStatus.FIXED
+
+    async def test_empty_scan_marks_all_findings_fixed(self, session):
+        agent = await _create_agent(session)
+        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="my-nginx")
+
+        empty_output = {**SAMPLE_TRIVY_OUTPUT, "Results": []}
+        await process_scan_result(session, agent.id, empty_output, container_name="my-nginx")
+
+        findings = (await session.execute(select(Finding))).scalars().all()
+        assert all(f.status == FindingStatus.FIXED for f in findings)
+
+    async def test_does_not_fix_accepted_findings(self, session):
+        """User-accepted findings must not be auto-reset to FIXED by reconciliation."""
+        agent = await _create_agent(session)
+        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="my-nginx")
+
+        # User accepts the zlib finding
+        zlib = (await session.execute(select(Finding).where(Finding.package_name == "zlib"))).scalar_one()
+        zlib.status = FindingStatus.ACCEPTED
+        session.add(zlib)
+        await session.commit()
+
+        # Next scan still includes zlib — ACCEPTED status must be preserved
+        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="my-nginx")
+
+        await session.refresh(zlib)
+        assert zlib.status == FindingStatus.ACCEPTED
+
+    async def test_fixed_finding_does_not_resurface_as_active(self, session):
+        """A finding that was FIXED must not prevent a new ACTIVE row if it reappears."""
+        agent = await _create_agent(session)
+        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="my-nginx")
+
+        # Scan 2: zlib disappears → FIXED
+        partial_output = {
+            **SAMPLE_TRIVY_OUTPUT,
+            "Results": [
+                {
+                    "Target": "nginx:latest",
+                    "Vulnerabilities": [SAMPLE_TRIVY_OUTPUT["Results"][0]["Vulnerabilities"][0]],
+                }
+            ],
+        }
+        await process_scan_result(session, agent.id, partial_output, container_name="my-nginx")
+
+        # Scan 3: zlib reappears → new ACTIVE finding
+        await process_scan_result(session, agent.id, SAMPLE_TRIVY_OUTPUT, container_name="my-nginx")
+
+        zlib_findings = (await session.execute(select(Finding).where(Finding.package_name == "zlib"))).scalars().all()
+        active = [f for f in zlib_findings if f.status == FindingStatus.ACTIVE]
+        fixed = [f for f in zlib_findings if f.status == FindingStatus.FIXED]
+        assert len(active) == 1
+        assert len(fixed) == 1
