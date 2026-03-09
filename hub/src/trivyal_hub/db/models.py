@@ -1,15 +1,22 @@
 """SQLModel table definitions for the hub database."""
 
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import StrEnum
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import UniqueConstraint
 from sqlmodel import JSON, Column, Field, Relationship, SQLModel
 
+from trivyal_hub.config import settings
 
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
+
+def _now() -> datetime:
+    return datetime.now(ZoneInfo(settings.tz))
+
+
+# Alias kept for any existing imports
+_utcnow = _now
 
 
 def _new_id() -> str:
@@ -66,7 +73,7 @@ class Agent(SQLModel, table=True):
     status: AgentStatus = Field(default=AgentStatus.OFFLINE)
     last_seen: datetime | None = None
     host_metadata: dict | None = Field(default=None, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=_now)
 
     containers: list[Container] = Relationship(
         back_populates="agent",
@@ -84,7 +91,7 @@ class Container(SQLModel, table=True):
     container_name: str | None = None
     image_digest: str | None = None
     last_scanned: datetime | None = None
-    created_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=_now)
 
     agent: Agent = Relationship(back_populates="containers")
     scan_results: list[ScanResult] = Relationship(
@@ -101,7 +108,7 @@ class ScanResult(SQLModel, table=True):
     id: str = Field(default_factory=_new_id, primary_key=True)
     container_id: str = Field(foreign_key="container.id", index=True)
     agent_id: str = Field(foreign_key="agent.id", index=True)
-    scanned_at: datetime = Field(default_factory=_utcnow)
+    scanned_at: datetime = Field(default_factory=_now)
     trivy_raw: dict | None = Field(default=None, sa_column=Column(JSON))
     critical_count: int = Field(default=0)
     high_count: int = Field(default=0)
@@ -126,8 +133,8 @@ class Finding(SQLModel, table=True):
     severity: Severity
     description: str | None = None
     status: FindingStatus = Field(default=FindingStatus.ACTIVE)
-    first_seen: datetime = Field(default_factory=_utcnow)
-    last_seen: datetime = Field(default_factory=_utcnow)
+    first_seen: datetime = Field(default_factory=_now)
+    last_seen: datetime = Field(default_factory=_now)
 
     scan_result: ScanResult = Relationship(back_populates="findings")
     acceptances: list[RiskAcceptance] = Relationship(
@@ -144,8 +151,8 @@ class MisconfigFinding(SQLModel, table=True):
     title: str
     fix_guideline: str
     status: MisconfigStatus = Field(default=MisconfigStatus.ACTIVE)
-    first_seen: datetime = Field(default_factory=_utcnow)
-    last_seen: datetime = Field(default_factory=_utcnow)
+    first_seen: datetime = Field(default_factory=_now)
+    last_seen: datetime = Field(default_factory=_now)
 
     container: Container = Relationship(back_populates="misconfig_findings")
     acceptances: list[RiskAcceptance] = Relationship(
@@ -161,7 +168,7 @@ class RiskAcceptance(SQLModel, table=True):
     reason: str
     accepted_by: str = Field(default="admin")
     expires_at: datetime | None = None
-    created_at: datetime = Field(default_factory=_utcnow)
+    created_at: datetime = Field(default_factory=_now)
 
     finding: Finding | None = Relationship(back_populates="acceptances")
     misconfig_finding: MisconfigFinding | None = Relationship(back_populates="acceptances")
@@ -173,4 +180,4 @@ class NotificationSettings(SQLModel, table=True):
     webhook_type: str | None = None  # slack, discord, ntfy
     notify_on_critical: bool = Field(default=True)
     notify_on_high: bool = Field(default=True)
-    updated_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_now)

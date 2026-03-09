@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     admin_password: SecretStr = SecretStr("admin")
     database_url: str | None = None
     static_dir: Path = Path("/app/static")
+    tz: str = "UTC"
 
     @property
     def db_url(self) -> str:
