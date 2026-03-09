@@ -143,7 +143,7 @@ export function AddAgentDialog({ onCreated }: AddAgentDialogProps) {
                 token is shown only once.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="min-w-0 space-y-4 py-4">
               <div>
                 <p className="mb-1 text-sm font-medium">Token</p>
                 <code className="bg-muted block rounded px-3 py-2 text-sm break-all">
