@@ -75,9 +75,7 @@ class Agent(SQLModel, table=True):
 
 
 class Container(SQLModel, table=True):
-    __table_args__ = (
-        UniqueConstraint("agent_id", "image_name", "image_tag", "container_name", name="uq_container_agent_image"),
-    )
+    __table_args__ = (UniqueConstraint("agent_id", "container_name", "image_name", name="uq_container_agent_image"),)
 
     id: str = Field(default_factory=_new_id, primary_key=True)
     agent_id: str = Field(foreign_key="agent.id", index=True)

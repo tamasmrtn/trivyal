@@ -38,9 +38,8 @@ async def process_scan_result(
         await session.execute(
             select(Container).where(
                 Container.agent_id == agent_id,
-                Container.image_name == image_name,
-                Container.image_tag == image_tag,
                 Container.container_name == container_name,
+                Container.image_name == image_name,
             )
         )
     ).scalar_one_or_none()
@@ -55,6 +54,7 @@ async def process_scan_result(
         session.add(container)
         await session.flush()
     container.last_scanned = now
+    container.image_tag = image_tag
     container.image_digest = image_digest or container.image_digest
 
     # Create scan result
