@@ -6,6 +6,7 @@ requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.135",
     "uvicorn>=0.41",
+    "websockets>=16.0",
     "sqlmodel>=0.0.37",
     "aiosqlite>=0.22",
     "pydantic-settings>=2.13",
