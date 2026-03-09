@@ -41,7 +41,11 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-export function useInsights(window: number, fixable?: boolean) {
+export function useInsights(
+  window: number,
+  fixable?: boolean,
+  agentId?: string,
+) {
   const [{ data, loading, error }, dispatch] = useReducer(reducer, {
     data: null,
     loading: true,
@@ -53,10 +57,10 @@ export function useInsights(window: number, fixable?: boolean) {
     dispatch({ type: "LOADING" });
 
     Promise.all([
-      fetchInsightsSummary(window, fixable),
-      fetchInsightsTrend(window, fixable),
-      fetchAgentsTrend(window, fixable),
-      fetchTopCves(window, fixable),
+      fetchInsightsSummary(window, fixable, agentId),
+      fetchInsightsTrend(window, fixable, agentId),
+      fetchAgentsTrend(window, fixable, agentId),
+      fetchTopCves(window, fixable, agentId),
     ])
       .then(([summary, trend, agentsTrend, topCves]) => {
         if (!cancelled) {
@@ -79,7 +83,7 @@ export function useInsights(window: number, fixable?: boolean) {
     return () => {
       cancelled = true;
     };
-  }, [window, fixable]);
+  }, [window, fixable, agentId]);
 
   return { data, loading, error };
 }

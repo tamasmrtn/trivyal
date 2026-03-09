@@ -77,7 +77,10 @@ export function SeverityDonutChart({ summary, severityCounts }: Props) {
                   <Cell key={i} fill={entry.color} strokeWidth={0} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={tooltipContentStyle} />
+              <Tooltip
+                contentStyle={tooltipContentStyle}
+                labelStyle={{ color: "var(--color-foreground)" }}
+              />
             </PieChart>
           </ResponsiveContainer>
           {/* Centre label */}

@@ -112,8 +112,6 @@ export interface TrendDayPoint {
   high: number;
   medium: number;
   low: number;
-  new: number;
-  resolved: number;
 }
 
 export interface TrendResponse {

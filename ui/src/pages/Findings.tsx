@@ -1,24 +1,30 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useFixable } from "@/lib/hooks/useFixable";
 import { FindingTable, FindingFilters, useFindings } from "@/features/findings";
+import { useAgents } from "@/features/agents";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { FindingStatus, Severity } from "@/lib/api/types";
 
 export function Findings() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [severity, setSeverity] = useState<Severity | undefined>();
   const [status, setStatus] = useState<FindingStatus | undefined>();
+  const [agentId, setAgentId] = useState<string | undefined>();
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState("first_seen");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
-  const fixable = searchParams.get("fixable") === "true";
+  const { data: agents } = useAgents({ page_size: 200 });
+
+  const [fixable, toggleFixable] = useFixable();
   const imageName = searchParams.get("image_name") ?? undefined;
 
   const { data, total, loading, error, refetch } = useFindings({
     severity,
     status,
+    agent_id: agentId,
     image_name: imageName,
     fixable: fixable || undefined,
     page,
@@ -28,6 +34,11 @@ export function Findings() {
   });
 
   const totalPages = Math.max(1, Math.ceil(total / 50));
+
+  function handleAgentChange(value: string) {
+    setAgentId(value || undefined);
+    setPage(1);
+  }
 
   function handleSeverityChange(value: Severity | undefined) {
     setSeverity(value);
@@ -49,14 +60,8 @@ export function Findings() {
     setPage(1);
   }
 
-  function toggleFixable() {
-    const next = new URLSearchParams(searchParams);
-    if (fixable) {
-      next.delete("fixable");
-    } else {
-      next.set("fixable", "true");
-    }
-    setSearchParams(next);
+  function handleToggleFixable() {
+    toggleFixable();
     setPage(1);
   }
 
@@ -88,6 +93,19 @@ export function Findings() {
           )}
         </div>
         <div className="flex items-center gap-3">
+          <select
+            value={agentId ?? ""}
+            onChange={(e) => handleAgentChange(e.target.value)}
+            aria-label="Filter by agent"
+            className="bg-input text-foreground focus:ring-ring rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+          >
+            <option value="">All Agents</option>
+            {agents.map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.name}
+              </option>
+            ))}
+          </select>
           <FindingFilters
             severity={severity}
             status={status}
@@ -97,7 +115,7 @@ export function Findings() {
           <Button
             variant="outline"
             size="sm"
-            onClick={toggleFixable}
+            onClick={handleToggleFixable}
             className={cn(fixable && "bg-primary text-primary-foreground")}
           >
             Fixable only
