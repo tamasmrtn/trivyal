@@ -7,7 +7,6 @@ dependencies = [
     "pydantic-settings>=2.13",
     "pynacl>=1.6",
     "websockets>=14",
-    "docker>=7",
     "croniter>=4",
 ]
 
