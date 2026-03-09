@@ -1,6 +1,6 @@
 [project]
 name = "trivyal-agent"
-version = "0.4.2"
+version = "0.4.3"
 description = "Trivyal agent — runs on each host, discovers containers, and ships scan results to hub"
 requires-python = ">=3.14"
 dependencies = [
