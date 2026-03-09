@@ -36,7 +36,8 @@ WORKDIR /app
 # Copy only the populated virtualenv — uv itself is not copied
 COPY --from=python-builder /app/.venv /app/.venv
 
-RUN apk upgrade --no-cache && \
+RUN pip uninstall -y pip && \
+    apk upgrade --no-cache && \
     addgroup -S trivyal && \
     adduser -S -G trivyal -H trivyal && \
     mkdir -p /app/data && \
