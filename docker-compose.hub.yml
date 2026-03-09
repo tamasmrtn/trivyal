@@ -33,6 +33,7 @@ services:
       TRIVYAL_SECRET_KEY: "change-me-to-a-long-random-string"
       TRIVYAL_ADMIN_PASSWORD: "change-me"
       TRIVYAL_DATA_DIR: /app/data
+      TRIVYAL_TZ: "Europe/Amsterdam"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8099/api/health || exit 1"]
       interval: 30s
