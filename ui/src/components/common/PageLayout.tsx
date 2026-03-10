@@ -6,7 +6,6 @@ import {
   ListChecks,
   TrendingUp,
   History,
-  Settings,
   LogOut,
   Sun,
   Moon,
@@ -26,7 +25,6 @@ const navItems = [
   { to: "/priorities", icon: ListChecks, label: "Priorities" },
   { to: "/insights", icon: TrendingUp, label: "Insights" },
   { to: "/scans", icon: History, label: "Scan History" },
-  { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
 function getInitialDark(): boolean {

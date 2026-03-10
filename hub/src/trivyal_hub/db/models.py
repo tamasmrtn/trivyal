@@ -172,12 +172,3 @@ class RiskAcceptance(SQLModel, table=True):
 
     finding: Finding | None = Relationship(back_populates="acceptances")
     misconfig_finding: MisconfigFinding | None = Relationship(back_populates="acceptances")
-
-
-class NotificationSettings(SQLModel, table=True):
-    id: str = Field(default_factory=_new_id, primary_key=True)
-    webhook_url: str | None = None
-    webhook_type: str | None = None  # slack, discord, ntfy
-    notify_on_critical: bool = Field(default=True)
-    notify_on_high: bool = Field(default=True)
-    updated_at: datetime = Field(default_factory=_now)

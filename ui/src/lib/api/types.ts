@@ -90,15 +90,6 @@ export interface TokenResponse {
   token_type: string;
 }
 
-export type WebhookType = "slack" | "discord" | "ntfy" | null;
-
-export interface SettingsResponse {
-  webhook_url: string | null;
-  webhook_type: WebhookType;
-  notify_on_critical: boolean;
-  notify_on_high: boolean;
-}
-
 export interface InsightsSummary {
   active_findings: number;
   critical_high: number;

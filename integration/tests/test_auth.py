@@ -72,10 +72,6 @@ class TestAuthEnforcement:
         r = await hub_anon.get("/api/v1/dashboard/summary")
         assert r.status_code == 401
 
-    async def test_settings_endpoint_requires_auth(self, hub_anon):
-        r = await hub_anon.get("/api/v1/settings")
-        assert r.status_code == 401
-
     async def test_invalid_token_returns_401(self, hub_base_url):
         import httpx
 

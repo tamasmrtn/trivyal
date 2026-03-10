@@ -10,7 +10,6 @@ import { FindingDetail } from "@/pages/FindingDetail";
 import { Priorities } from "@/pages/Priorities";
 import { Insights } from "@/pages/Insights";
 import { ScanHistory } from "@/pages/ScanHistory";
-import { Settings } from "@/pages/Settings";
 import { Login } from "@/pages/Login";
 import "./app.css";
 
@@ -38,7 +37,6 @@ function App() {
         <Route path="priorities" element={<Priorities />} />
         <Route path="insights" element={<Insights />} />
         <Route path="scans" element={<ScanHistory />} />
-        <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
   );
