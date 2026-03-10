@@ -11,7 +11,6 @@ from trivyal_hub.api.v1.images import router as images_router
 from trivyal_hub.api.v1.insights import router as insights_router
 from trivyal_hub.api.v1.misconfigurations import router as misconfigs_router
 from trivyal_hub.api.v1.scans import router as scans_router
-from trivyal_hub.api.v1.settings import router as settings_router
 
 router = APIRouter(prefix="/api/v1")
 router.include_router(auth_router)
@@ -22,5 +21,4 @@ router.include_router(findings_router)
 router.include_router(misconfigs_router)
 router.include_router(images_router)
 router.include_router(dashboard_router)
-router.include_router(settings_router)
 router.include_router(insights_router)
