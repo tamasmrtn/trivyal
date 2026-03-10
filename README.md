@@ -32,7 +32,6 @@ Trivyal is designed for homelabs and small multi-server Docker environments. A l
 - Risk acceptance — mark a finding as accepted with a reason and expiry date
 - False positive flagging per finding
 - Full scan history log per host
-- Webhook notifications (Slack, Discord, Ntfy) on new Critical/High findings
 - Agent management UI — add, remove, and view agents; copy-paste Docker Compose snippet for quick deploy
 - Dark mode UI (default dark, toggleable)
 - Single admin user with token-based API access

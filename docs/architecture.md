@@ -23,7 +23,6 @@ Trivyal is a self-hosted vulnerability management tool designed for small homela
 - Diff view between scans — highlights new findings and fixed findings
 - Risk acceptance — mark a finding as accepted with a reason and expiry date; revoke acceptance; false positive flagging
 - Scan history — full log of every scan run per host
-- Notification support — webhook (Slack, Discord, Ntfy) on new Critical/High findings
 - Agent management UI — add, remove, and view agents; copy-paste Docker Compose snippet for quick agent deploy
 - Dark mode UI (default dark, toggleable)
 - Single admin user with token-based API access
@@ -185,7 +184,7 @@ Beszel uses SvelteKit + shadcn-svelte. Since Trivyal's backend is Python (not Go
 │  │  - Agent manager        │    │       │              │                   │
 │  │  - Scan aggregator      │    │       │   /var/run/docker.sock (ro)      │
 │  │  - Auth / token mgmt    │    │       └──────────────────────────────────┘
-│  │  - Notification sender  │    │
+│  │  - Risk acceptance mgmt │    │
 │  └──────────┬──────────────┘    │       ┌──────────────────────────────────┐
 │             │                   │       │          Server 1 (Agent)        │
 │  ┌──────────▼──────────────┐    │       │  (same pattern, second host)     │
@@ -321,10 +320,6 @@ GET    /api/v1/insights/trend              # daily severity breakdown + new/reso
 GET    /api/v1/insights/agents/trend       # per-agent daily total findings — ?window=<days>
 GET    /api/v1/insights/top-cves           # most-widespread CVEs ranked by container/agent count — ?window=<days>
 
-# Settings
-GET    /api/v1/settings                    # current notification + schedule config
-PATCH  /api/v1/settings                    # update settings (webhooks, scan schedule)
-
 # WebSocket (agent transport — not versioned)
 WS     /ws/agent                           # agent connection endpoint (token in header)
 ```
@@ -356,13 +351,11 @@ trivyal/
 │   │       │       ├── dashboard.py
 │   │       │       ├── insights.py
 │   │       │       ├── misconfigurations.py
-│   │       │       ├── images.py
-│   │       │       └── settings.py
+│   │       │       └── images.py
 │   │       ├── core/                       # Business logic (no FastAPI deps)
 │   │       │   ├── auth.py                 # Token + Ed25519 key management
 │   │       │   ├── aggregator.py           # Processes incoming Trivy scan results
 │   │       │   ├── misconfig_aggregator.py # Processes incoming misconfig results
-│   │       │   ├── notifier.py             # Webhook notifications
 │   │       │   └── scheduler.py           # Periodic tasks (cleanup, etc.)
 │   │       ├── db/
 │   │       │   ├── models.py               # SQLModel table definitions
@@ -478,8 +471,7 @@ trivyal/
 │   │   │   ├── FindingDetail.tsx
 │   │   │   ├── Insights.tsx
 │   │   │   ├── Priorities.tsx
-│   │   │   ├── ScanHistory.tsx
-│   │   │   └── Settings.tsx
+│   │   │   └── ScanHistory.tsx
 │   │   ├── lib/
 │   │   │   ├── api/                        # Typed API client (one file per resource)
 │   │   │   │   ├── client.ts               # Axios/fetch base, auth header injection
@@ -571,4 +563,3 @@ services:
 | **Insights** | Time-windowed analytics (7 / 30 / 90 days): KPI summary cards (active findings, critical+high count, new this period, fix rate); *Fixable only* toggle; severity trend line chart with scan-event markers; new-vs-resolved diverging bar chart; per-agent trend lines; severity donut chart; top CVEs table ranked by container and agent spread |
 | **Scan History** | Timeline of scans per agent/container, diff view (new / fixed per scan) |
 | **Finding Detail** | Single CVE detail — CVE description (sourced from Trivy/NVD), affected containers, fix version, NVD link, risk acceptance form |
-| **Settings** | Notification webhooks, scan schedule override, theme toggle |
