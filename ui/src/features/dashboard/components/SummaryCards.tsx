@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DashboardSummary } from "@/lib/api/types";
 import {
@@ -65,13 +66,21 @@ const agentStatusCards = [
 ] as const;
 
 export function SummaryCards({ data }: SummaryCardsProps) {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-8">
       <section>
         <h2 className="mb-4 text-lg font-semibold">Vulnerabilities</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {severityCards.map(({ key, label, icon: Icon, color }) => (
-            <Card key={key}>
+            <Card
+              key={key}
+              className="hover:border-primary/50 cursor-pointer transition-colors"
+              onClick={() =>
+                navigate(`/findings?severity=${key.toUpperCase()}`)
+              }
+            >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">{label}</CardTitle>
                 <Icon className={`h-4 w-4 ${color}`} />
@@ -90,7 +99,11 @@ export function SummaryCards({ data }: SummaryCardsProps) {
         <h2 className="mb-4 text-lg font-semibold">Agents</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {agentStatusCards.map(({ key, label, icon: Icon, color }) => (
-            <Card key={key}>
+            <Card
+              key={key}
+              className="hover:border-primary/50 cursor-pointer transition-colors"
+              onClick={() => navigate("/agents")}
+            >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">{label}</CardTitle>
                 <Icon className={`h-4 w-4 ${color}`} />

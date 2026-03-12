@@ -9,7 +9,9 @@ import type { FindingStatus, Severity } from "@/lib/api/types";
 
 export function Findings() {
   const [searchParams] = useSearchParams();
-  const [severity, setSeverity] = useState<Severity | undefined>();
+  const [severity, setSeverity] = useState<Severity | undefined>(
+    (searchParams.get("severity") as Severity) || undefined,
+  );
   const [status, setStatus] = useState<FindingStatus | undefined>();
   const [agentId, setAgentId] = useState<string | undefined>();
   const [page, setPage] = useState(1);
