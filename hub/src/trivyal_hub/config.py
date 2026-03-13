@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     database_url: str | None = None
     static_dir: Path = Path("/app/static")
     tz: str = "UTC"
+    acceptance_expiry_interval: int = 3600  # seconds between expiry sweeps
 
     @property
     def db_url(self) -> str:
