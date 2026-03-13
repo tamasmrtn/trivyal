@@ -62,7 +62,7 @@ function SortableHead({
     <TableHead className={className}>
       <button
         onClick={() => onSort(column)}
-        className="hover:text-foreground flex items-center whitespace-nowrap"
+        className="hover:text-foreground flex items-center py-1 whitespace-nowrap"
       >
         {label}
         <SortIcon column={column} sortBy={sortBy} sortDir={sortDir} />

@@ -105,4 +105,14 @@ describe("FindingTable", () => {
       screen.queryByLabelText("Accept risk for CVE-2026-5678"),
     ).not.toBeInTheDocument();
   });
+
+  it("sort header buttons have py-1 for adequate touch target height", () => {
+    const { container } = renderTable();
+    // Find all sort buttons inside column headers
+    const sortButtons = container.querySelectorAll("th button");
+    expect(sortButtons.length).toBeGreaterThan(0);
+    sortButtons.forEach((btn) => {
+      expect(btn.className).toContain("py-1");
+    });
+  });
 });
