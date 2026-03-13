@@ -8,6 +8,7 @@ import contextlib
 import json
 import logging
 import re
+import time
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ def save(
     result: dict,
     container_name: str | None = None,
     image_digest: str = "",
+    scanned_at: float | None = None,
 ) -> None:
     """Persist a Trivy scan result for *image_name* to disk."""
     cache_dir = data_dir / "cache"
@@ -33,7 +35,14 @@ def save(
     cache_file = cache_dir / _safe_filename(image_name)
     try:
         cache_file.write_text(
-            json.dumps({"result": result, "container_name": container_name, "image_digest": image_digest})
+            json.dumps(
+                {
+                    "result": result,
+                    "container_name": container_name,
+                    "image_digest": image_digest,
+                    "scanned_at": scanned_at if scanned_at is not None else time.time(),
+                }
+            )
         )
     except OSError:
         logger.exception("Failed to write cache for %s", image_name)
@@ -49,6 +58,21 @@ def get_cached_digest(data_dir: Path, image_name: str) -> str:
         return entry.get("image_digest", "")
     except Exception:
         return ""
+
+
+def is_cache_stale(data_dir: Path, image_name: str, max_age_days: int) -> bool:
+    """Return True if the cached scan is older than *max_age_days* (or absent/corrupt)."""
+    cache_file = data_dir / "cache" / _safe_filename(image_name)
+    if not cache_file.exists():
+        return True
+    try:
+        entry = json.loads(cache_file.read_text())
+        scanned_at = entry.get("scanned_at")
+        if scanned_at is None:
+            return True  # old cache format — treat as stale
+        return (time.time() - scanned_at) / 86400 >= max_age_days
+    except Exception:
+        return True
 
 
 def load(data_dir: Path, image_name: str) -> tuple[dict, str | None] | None:

@@ -42,7 +42,7 @@ services:
       TRIVYAL_TOKEN: ${TRIVYAL_TOKEN}
       TRIVYAL_KEY: ${TRIVYAL_KEY}
       TRIVYAL_SCAN_SCHEDULE: "${TRIVYAL_SCAN_SCHEDULE:-0 2 * * *}"
-      TRIVYAL_TZ: "Europe/Amsterdam"
+      TRIVYAL_MAX_SCAN_AGE_DAYS: "3"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8100/health || exit 1"]
       interval: 60s

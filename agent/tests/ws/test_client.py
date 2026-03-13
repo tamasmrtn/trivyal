@@ -362,6 +362,43 @@ class TestScanCycleDigestSkip:
 
         assert get_cached_digest(tmp_path, "alpine:3") == "sha256:xyz"
 
+    async def test_rescans_image_when_digest_matches_but_cache_is_stale(self, tmp_path):
+        """A digest match must not prevent scanning when the cache is older than max_scan_age_days."""
+        import time
+
+        from trivyal_agent.core.cache import save
+
+        settings = _make_settings(data_dir=str(tmp_path), max_scan_age_days=7)
+        client = AgentClient(settings)
+
+        # Cache has the same digest but was written 8 days ago
+        eight_days_ago = time.time() - 8 * 86400
+        save(
+            tmp_path,
+            "nginx:latest",
+            {"ArtifactName": "nginx:latest"},
+            image_digest="sha256:abc",
+            scanned_at=eight_days_ago,
+        )
+
+        mock_ws = AsyncMock()
+        sent = []
+        mock_ws.send = AsyncMock(side_effect=lambda m: sent.append(json.loads(m)))
+
+        scan_result = {"ArtifactName": "nginx:latest", "Results": []}
+        containers = [{"image_name": "nginx:latest", "container_name": "my-nginx", "image_digest": "sha256:abc"}]
+
+        with (
+            patch("trivyal_agent.ws.client.list_running_images", return_value=containers),
+            patch("trivyal_agent.ws.client.scan_all_images", return_value=[scan_result]) as mock_scan,
+            patch("trivyal_agent.ws.client.save"),
+            patch("trivyal_agent.ws.client.run_misconfig_checks", return_value=[]),
+        ):
+            await client._run_scan_cycle(mock_ws)
+
+        mock_scan.assert_called_once_with(["nginx:latest"])
+        assert any(m["type"] == "scan_result" for m in sent)
+
 
 class TestFlushCache:
     """Tests for _flush_cache — specifically the cache-clearing postcondition.

@@ -8,7 +8,7 @@ import websockets.asyncio.client as ws_client
 
 from trivyal_agent.config import Settings
 from trivyal_agent.core.auth import get_machine_fingerprint, verify_hub_signature
-from trivyal_agent.core.cache import clear, get_cached_digest, list_cached, save
+from trivyal_agent.core.cache import clear, get_cached_digest, is_cache_stale, list_cached, save
 from trivyal_agent.core.docker_client import collect_host_metadata, list_running_images
 from trivyal_agent.core.misconfig_runner import run_misconfig_checks
 from trivyal_agent.core.scheduler import run_scheduler
@@ -149,13 +149,15 @@ class AgentClient:
                 image_digest_map[c["image_name"]] = c.get("image_digest", "")
                 image_names.append(c["image_name"])
 
-        # Skip images whose digest matches the last cached scan result
+        # Skip images whose digest matches the last cached scan result and the
+        # cache is not older than max_scan_age_days (to catch new CVEs in unchanged images)
         to_scan: list[str] = []
         skipped: list[str] = []
         for image_name in image_names:
             current_digest = image_digest_map[image_name]
             cached_digest = get_cached_digest(self._settings.data_dir, image_name)
-            if current_digest and current_digest == cached_digest:
+            stale = is_cache_stale(self._settings.data_dir, image_name, self._settings.max_scan_age_days)
+            if current_digest and current_digest == cached_digest and not stale:
                 skipped.append(image_name)
             else:
                 to_scan.append(image_name)
