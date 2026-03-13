@@ -238,4 +238,27 @@ describe("FindingDetail", () => {
       );
     });
   });
+
+  it("detail label column uses w-28 instead of w-40 to fit narrow screens", async () => {
+    const { container } = renderDetail();
+    await screen.findByRole("heading", { name: "CVE-2026-1234" });
+
+    const labels = container.querySelectorAll("dl dt");
+    expect(labels.length).toBeGreaterThan(0);
+    labels.forEach((dt) => {
+      expect(dt.className).not.toContain("w-40");
+      expect(dt.className).toContain("w-28");
+    });
+  });
+
+  it("detail value cells have min-w-0 to prevent horizontal overflow", async () => {
+    const { container } = renderDetail();
+    await screen.findByRole("heading", { name: "CVE-2026-1234" });
+
+    const values = container.querySelectorAll("dl dd");
+    expect(values.length).toBeGreaterThan(0);
+    values.forEach((dd) => {
+      expect(dd.className).toContain("min-w-0");
+    });
+  });
 });
