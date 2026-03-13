@@ -59,7 +59,7 @@ function NavContents({
             onClick={onNavClick}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium tracking-wide transition-colors",
+                "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium tracking-wide transition-colors",
                 isActive
                   ? "bg-accent text-accent-foreground"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
@@ -79,14 +79,14 @@ function NavContents({
       <div className="space-y-1 border-t p-2">
         <button
           onClick={toggleTheme}
-          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors"
         >
           {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           {dark ? "Light mode" : "Dark mode"}
         </button>
         <button
           onClick={logout}
-          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors"
         >
           <LogOut className="h-4 w-4" />
           Log out
@@ -144,8 +144,13 @@ export function PageLayout() {
           </NavLink>
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" title="Open menu">
-                <Menu className="h-4 w-4" />
+              <Button
+                variant="ghost"
+                size="icon"
+                title="Open menu"
+                className="h-10 w-10"
+              >
+                <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
             <SheetContent>
