@@ -95,9 +95,11 @@ describe("AgentTable", () => {
     expect(screen.getByText("Never")).toBeInTheDocument();
   });
 
-  it("calls onDelete when delete button is clicked", async () => {
+  it("calls onDelete when delete button is clicked and confirmed", async () => {
     const onDelete = vi.fn();
     const user = userEvent.setup();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
     render(
       <AgentTable
         agents={mockAgents}
@@ -110,6 +112,7 @@ describe("AgentTable", () => {
     await user.click(deleteBtn);
 
     expect(onDelete).toHaveBeenCalledWith("abc123");
+    vi.restoreAllMocks();
   });
 
   it("renders a scan button for each agent row", () => {
@@ -188,6 +191,61 @@ describe("AgentTable", () => {
     await user.click(screen.getByLabelText("Scan server-1"));
 
     expect(screen.getByLabelText("Scan server-1")).toBeDisabled();
+  });
+
+  it("does not call onDelete without confirmation", async () => {
+    const onDelete = vi.fn();
+    const user = userEvent.setup();
+    // Simulate user cancelling the confirm dialog
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+
+    render(
+      <AgentTable
+        agents={mockAgents}
+        onDelete={onDelete}
+        onTriggerScan={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByLabelText("Delete server-1"));
+
+    expect(onDelete).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
+  it("calls onDelete after user confirms", async () => {
+    const onDelete = vi.fn();
+    const user = userEvent.setup();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(
+      <AgentTable
+        agents={mockAgents}
+        onDelete={onDelete}
+        onTriggerScan={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByLabelText("Delete server-1"));
+
+    expect(onDelete).toHaveBeenCalledWith("abc123");
+    vi.restoreAllMocks();
+  });
+
+  it("scan and delete buttons have gap-2 between them to avoid accidental taps", () => {
+    const { container } = render(
+      <AgentTable
+        agents={mockAgents}
+        onDelete={vi.fn()}
+        onTriggerScan={vi.fn()}
+      />,
+    );
+    // The action cell div wrapping both buttons should use gap-2
+    const actionDivs = container.querySelectorAll("td > div");
+    const hasScanAndDelete = Array.from(actionDivs).some(
+      (div) => div.className.includes("gap-2") && div.children.length === 2,
+    );
+    expect(hasScanAndDelete).toBe(true);
   });
 
   it("re-enables the scan button after the request resolves", async () => {

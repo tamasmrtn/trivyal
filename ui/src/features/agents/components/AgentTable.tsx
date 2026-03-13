@@ -88,7 +88,7 @@ export function AgentTable({
               {new Date(agent.created_at).toLocaleDateString()}
             </TableCell>
             <TableCell>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -103,7 +103,11 @@ export function AgentTable({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => onDelete(agent.id)}
+                  onClick={() => {
+                    if (window.confirm(`Delete agent "${agent.name}"?`)) {
+                      onDelete(agent.id);
+                    }
+                  }}
                   aria-label={`Delete ${agent.name}`}
                 >
                   <Trash2 className="text-destructive-foreground h-4 w-4" />
