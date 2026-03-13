@@ -12,13 +12,18 @@ logger = logging.getLogger(__name__)
 
 
 def _list_running_containers() -> list[dict]:
-    """Return image name and container name for all running containers (sync)."""
+    """Return image name, container name, and image digest for all running containers (sync)."""
     result = []
     for c in _docker.containers():
         image_name = c.get("Image", "")
         names = c.get("Names", [])
         container_name = names[0].lstrip("/") if names else c["Id"][:12]
-        result.append({"image_name": image_name, "container_name": container_name})
+        try:
+            inspect = _docker.container_inspect(c["Id"])
+            image_digest = inspect.get("Image", "")
+        except Exception:
+            image_digest = ""
+        result.append({"image_name": image_name, "container_name": container_name, "image_digest": image_digest})
     return result
 
 
