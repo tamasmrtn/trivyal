@@ -20,15 +20,35 @@ def _safe_filename(image_name: str) -> str:
     return _SAFE_NAME_RE.sub("_", image_name)[:200] + ".json"
 
 
-def save(data_dir: Path, image_name: str, result: dict, container_name: str | None = None) -> None:
+def save(
+    data_dir: Path,
+    image_name: str,
+    result: dict,
+    container_name: str | None = None,
+    image_digest: str = "",
+) -> None:
     """Persist a Trivy scan result for *image_name* to disk."""
     cache_dir = data_dir / "cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_file = cache_dir / _safe_filename(image_name)
     try:
-        cache_file.write_text(json.dumps({"result": result, "container_name": container_name}))
+        cache_file.write_text(
+            json.dumps({"result": result, "container_name": container_name, "image_digest": image_digest})
+        )
     except OSError:
         logger.exception("Failed to write cache for %s", image_name)
+
+
+def get_cached_digest(data_dir: Path, image_name: str) -> str:
+    """Return the image digest stored in the cache for *image_name*, or '' if absent."""
+    cache_file = data_dir / "cache" / _safe_filename(image_name)
+    if not cache_file.exists():
+        return ""
+    try:
+        entry = json.loads(cache_file.read_text())
+        return entry.get("image_digest", "")
+    except Exception:
+        return ""
 
 
 def load(data_dir: Path, image_name: str) -> tuple[dict, str | None] | None:
