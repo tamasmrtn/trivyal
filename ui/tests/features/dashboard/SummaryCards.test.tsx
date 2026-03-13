@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { BrowserRouter } from "react-router-dom";
 import { SummaryCards } from "@/features/dashboard/components/SummaryCards";
 import type { DashboardSummary } from "@/lib/api/types";
 
@@ -21,7 +22,11 @@ const mockData: DashboardSummary = {
 
 describe("SummaryCards", () => {
   beforeEach(() => {
-    render(<SummaryCards data={mockData} />);
+    render(
+      <BrowserRouter>
+        <SummaryCards data={mockData} />
+      </BrowserRouter>,
+    );
   });
 
   it("renders all severity counts", () => {
