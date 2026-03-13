@@ -1,3 +1,4 @@
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DashboardSummary } from "@/lib/api/types";
@@ -21,7 +22,7 @@ const severityCards = [
     key: "critical" as const,
     label: "Critical",
     icon: ShieldAlert,
-    color: "text-red-600",
+    color: "text-destructive",
   },
   {
     key: "high" as const,
@@ -40,7 +41,7 @@ const severityCards = [
     key: "unknown" as const,
     label: "Unknown",
     icon: HelpCircle,
-    color: "text-gray-600",
+    color: "text-muted-foreground",
   },
 ] as const;
 
@@ -55,7 +56,7 @@ const agentStatusCards = [
     key: "offline" as const,
     label: "Offline",
     icon: WifiOff,
-    color: "text-red-600",
+    color: "text-destructive",
   },
   {
     key: "scanning" as const,
@@ -64,6 +65,15 @@ const agentStatusCards = [
     color: "text-primary",
   },
 ] as const;
+
+function handleCardKeyDown(onClick: () => void) {
+  return (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick();
+    }
+  };
+}
 
 export function SummaryCards({ data }: SummaryCardsProps) {
   const navigate = useNavigate();
@@ -76,10 +86,15 @@ export function SummaryCards({ data }: SummaryCardsProps) {
           {severityCards.map(({ key, label, icon: Icon, color }) => (
             <Card
               key={key}
+              role="link"
+              tabIndex={0}
               className="hover:border-primary/50 cursor-pointer transition-colors"
               onClick={() =>
                 navigate(`/findings?severity=${key.toUpperCase()}`)
               }
+              onKeyDown={handleCardKeyDown(() =>
+                navigate(`/findings?severity=${key.toUpperCase()}`),
+              )}
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">{label}</CardTitle>
@@ -101,8 +116,11 @@ export function SummaryCards({ data }: SummaryCardsProps) {
           {agentStatusCards.map(({ key, label, icon: Icon, color }) => (
             <Card
               key={key}
+              role="link"
+              tabIndex={0}
               className="hover:border-primary/50 cursor-pointer transition-colors"
               onClick={() => navigate("/agents")}
+              onKeyDown={handleCardKeyDown(() => navigate("/agents"))}
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">{label}</CardTitle>

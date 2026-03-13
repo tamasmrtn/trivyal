@@ -64,7 +64,9 @@ describe("Findings", () => {
   it("shows loading state initially", () => {
     mockFetchFindings.mockReturnValue(new Promise(() => {}));
     renderFindings();
-    expect(screen.getByText(/loading findings/i)).toBeInTheDocument();
+    expect(document.querySelectorAll(".animate-pulse").length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("shows error state when fetch fails", async () => {

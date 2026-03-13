@@ -48,7 +48,9 @@ describe("Dashboard page", () => {
     });
 
     renderWithRouter(<Dashboard />);
-    expect(screen.getByText(/loading dashboard/i)).toBeInTheDocument();
+    expect(document.querySelectorAll(".animate-pulse").length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("shows error state", () => {
