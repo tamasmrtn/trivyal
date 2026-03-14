@@ -1,6 +1,7 @@
 import { AgentTable, AddAgentDialog, useAgents } from "@/features/agents";
 import { deleteAgent } from "@/lib/api/agents";
 import { triggerScan } from "@/lib/api/scans";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function Agents() {
   const { data, loading, error, refetch } = useAgents();
@@ -24,8 +25,24 @@ export function Agents() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <p className="text-muted-foreground">Loading agents...</p>
+      <div>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-9 w-28" />
+        </div>
+        <div className="overflow-hidden rounded-lg border">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex gap-4 border-b px-4 py-3 last:border-0"
+            >
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-28" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

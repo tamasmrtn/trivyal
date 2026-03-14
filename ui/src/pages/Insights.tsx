@@ -10,6 +10,7 @@ import {
 } from "@/features/insights";
 import { useAgents } from "@/features/agents";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 const WINDOWS = [
@@ -31,8 +32,33 @@ export function Insights() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <p className="text-muted-foreground">Loading insights...</p>
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <Skeleton className="h-8 w-24" />
+          <div className="flex gap-3">
+            <Skeleton className="h-9 w-32" />
+            <Skeleton className="h-9 w-32" />
+            <Skeleton className="h-9 w-28" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-lg border p-6">
+              <Skeleton className="mb-4 h-4 w-20" />
+              <Skeleton className="h-8 w-16" />
+            </div>
+          ))}
+        </div>
+        <div className="rounded-lg border p-6">
+          <Skeleton className="h-[240px] w-full" />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="rounded-lg border p-6">
+              <Skeleton className="h-[200px] w-full" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -62,7 +88,7 @@ export function Insights() {
     <div className="space-y-6">
       {/* Page header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Insights</h1>
+        <h1 className="text-2xl font-bold">Insights</h1>
         <div className="flex flex-wrap items-center gap-3">
           <select
             value={agentId ?? ""}

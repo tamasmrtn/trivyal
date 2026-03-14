@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ShieldCheck, ShieldOff } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useFinding } from "@/features/findings";
 import { SeverityBadge } from "@/components/common/SeverityBadge";
 import { FindingStatusBadge, AcceptRiskDialog } from "@/features/findings";
@@ -53,8 +54,23 @@ export function FindingDetail() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="space-y-6">
+        <Skeleton className="h-4 w-32" />
+        <div>
+          <Skeleton className="mb-2 h-8 w-52" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="overflow-hidden rounded-lg border">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex gap-4 border-b px-4 py-3 last:border-0"
+            >
+              <Skeleton className="h-4 w-28 shrink-0" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
