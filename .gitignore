@@ -366,3 +366,4 @@ agent/data/
 # claude
 .claude/
 .planning/
+CLAUDE.md
