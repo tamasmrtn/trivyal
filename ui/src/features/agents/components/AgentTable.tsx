@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./StatusBadge";
 import type { AgentResponse } from "@/lib/api/types";
-import { RefreshCw, Trash2 } from "lucide-react";
+import { RefreshCw, Server, Trash2 } from "lucide-react";
 
 interface AgentTableProps {
   agents: AgentResponse[];
@@ -51,9 +51,13 @@ export function AgentTable({
 
   if (agents.length === 0) {
     return (
-      <div className="flex h-32 items-center justify-center rounded-lg border border-dashed">
-        <p className="text-muted-foreground">
-          No agents registered yet. Add one to get started.
+      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
+        <Server className="text-muted-foreground/40 mb-3 h-8 w-8" />
+        <p className="text-muted-foreground text-sm font-medium">
+          No agents registered
+        </p>
+        <p className="text-muted-foreground/70 mt-1 text-xs">
+          Add an agent to start scanning.
         </p>
       </div>
     );

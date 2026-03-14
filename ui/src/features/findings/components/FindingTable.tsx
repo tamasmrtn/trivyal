@@ -1,5 +1,10 @@
 import { Link } from "react-router-dom";
-import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  ChevronsUpDown,
+  ShieldCheck,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -80,9 +85,13 @@ export function FindingTable({
 }: FindingTableProps) {
   if (findings.length === 0) {
     return (
-      <div className="flex h-32 items-center justify-center rounded-lg border border-dashed">
-        <p className="text-muted-foreground">
-          No findings match the current filters.
+      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
+        <ShieldCheck className="text-muted-foreground/40 mb-3 h-8 w-8" />
+        <p className="text-muted-foreground text-sm font-medium">
+          No findings match the current filters
+        </p>
+        <p className="text-muted-foreground/70 mt-1 text-xs">
+          Try clearing some filters or run a scan to get started.
         </p>
       </div>
     );
