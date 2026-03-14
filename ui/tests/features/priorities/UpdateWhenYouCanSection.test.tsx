@@ -158,6 +158,36 @@ describe("UpdateWhenYouCanSection", () => {
     expect(useImages).toHaveBeenCalled();
   });
 
+  it("filter row has flex-wrap to prevent mobile overflow", () => {
+    vi.mocked(useImages).mockReturnValue({
+      data: [mockImage],
+      total: 1,
+      loading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    renderWithRouter(<UpdateWhenYouCanSection />);
+    const agentSelect = screen.getByLabelText("Filter by agent");
+    const filterRow = agentSelect.parentElement!;
+    expect(filterRow.className).toContain("flex-wrap");
+  });
+
+  it("image name cell has responsive max-w for narrow screens", () => {
+    vi.mocked(useImages).mockReturnValue({
+      data: [mockImage],
+      total: 1,
+      loading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const { container } = renderWithRouter(<UpdateWhenYouCanSection />);
+    const rows = container.querySelectorAll("tbody tr");
+    const imageCell = rows[0].querySelectorAll("td")[0];
+    expect(imageCell.className).toMatch(/max-w-\[120px\]/);
+  });
+
   it("navigates to findings with image_name param when row is clicked", async () => {
     vi.mocked(useImages).mockReturnValue({
       data: [mockImage],

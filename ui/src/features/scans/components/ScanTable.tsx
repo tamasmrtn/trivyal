@@ -60,9 +60,7 @@ export function ScanTable({ scans }: ScanTableProps) {
         <TableBody>
           {scans.map((scan) => (
             <TableRow key={scan.id}>
-              <TableCell className="whitespace-nowrap">
-                {formatDate(scan.scanned_at)}
-              </TableCell>
+              <TableCell>{formatDate(scan.scanned_at)}</TableCell>
               <TableCell>
                 {scan.agent_name ?? (
                   <span className="font-mono text-xs">

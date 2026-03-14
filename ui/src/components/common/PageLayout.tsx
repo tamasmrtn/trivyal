@@ -14,15 +14,20 @@ import {
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { fetchDashboardSummary } from "@/lib/api/dashboard";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/agents", icon: Server, label: "Agents" },
-  { to: "/findings", icon: ShieldAlert, label: "Findings" },
   { to: "/priorities", icon: ListChecks, label: "Priorities" },
+  { to: "/findings", icon: ShieldAlert, label: "Findings" },
+  { to: "/agents", icon: Server, label: "Agents" },
   { to: "/insights", icon: TrendingUp, label: "Insights" },
   { to: "/scans", icon: History, label: "Scan History" },
 ];
@@ -59,7 +64,7 @@ function NavContents({
             onClick={onNavClick}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium tracking-wide transition-colors",
+                "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium tracking-wide transition-colors",
                 isActive
                   ? "bg-accent text-accent-foreground"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
@@ -79,14 +84,14 @@ function NavContents({
       <div className="space-y-1 border-t p-2">
         <button
           onClick={toggleTheme}
-          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors"
         >
           {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           {dark ? "Light mode" : "Dark mode"}
         </button>
         <button
           onClick={logout}
-          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors"
         >
           <LogOut className="h-4 w-4" />
           Log out
@@ -122,7 +127,7 @@ export function PageLayout() {
   return (
     <div className="flex h-screen">
       {/* Desktop sidebar */}
-      <aside className="bg-card hidden w-56 flex-col border-r sm:flex">
+      <aside className="bg-card hidden w-56 flex-col border-r lg:flex">
         <div className="flex h-14 items-center border-b px-4">
           <NavLink to="/" className="font-mono text-lg font-bold tracking-wide">
             trivy<span className="text-primary">al</span>
@@ -137,18 +142,24 @@ export function PageLayout() {
       </aside>
 
       {/* Mobile top header */}
-      <div className="flex flex-1 flex-col sm:contents">
-        <header className="bg-card flex h-14 items-center justify-between border-b px-4 sm:hidden">
+      <div className="flex flex-1 flex-col lg:contents">
+        <header className="bg-card flex h-14 items-center justify-between border-b px-4 lg:hidden">
           <NavLink to="/" className="font-mono text-lg font-bold tracking-wide">
             trivy<span className="text-primary">al</span>
           </NavLink>
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" title="Open menu">
-                <Menu className="h-4 w-4" />
+              <Button
+                variant="ghost"
+                size="icon"
+                title="Open menu"
+                className="h-10 w-10"
+              >
+                <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
             <SheetContent>
+              <SheetTitle className="sr-only">Navigation</SheetTitle>
               <div className="flex h-14 items-center border-b px-4">
                 <NavLink
                   to="/"
@@ -168,7 +179,7 @@ export function PageLayout() {
           </Sheet>
         </header>
 
-        <main className="flex-1 overflow-auto p-4 sm:p-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

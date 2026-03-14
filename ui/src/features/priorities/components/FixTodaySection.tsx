@@ -155,10 +155,12 @@ export function FixTodaySection() {
                   <TableCell>
                     <SeverityBadge severity={finding.severity} />
                   </TableCell>
-                  <TableCell className="text-sm">
+                  <TableCell className="max-w-[120px] truncate text-sm">
                     {finding.container_name ?? "—"}
                   </TableCell>
-                  <TableCell className="text-sm">{finding.title}</TableCell>
+                  <TableCell className="max-w-[160px] truncate text-sm">
+                    {finding.title}
+                  </TableCell>
                   <TableCell className="hidden font-mono text-xs sm:table-cell">
                     {finding.check_id}
                   </TableCell>

@@ -186,4 +186,22 @@ describe("PageLayout", () => {
     const badge = await screen.findByText("15");
     expect(badge).toBeInTheDocument();
   });
+
+  it("hamburger button has h-10 for an adequate touch target", () => {
+    renderLayout();
+    const btn = screen.getByRole("button", { name: /open menu/i });
+    expect(btn.className).toMatch(/h-10/);
+  });
+
+  it("nav links in mobile drawer have py-3 for adequate touch target height", async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    await user.click(screen.getByRole("button", { name: /open menu/i }));
+
+    const dialog = screen.getByRole("dialog");
+    const dashboardLink = within(dialog).getByRole("link", {
+      name: /dashboard/i,
+    });
+    expect(dashboardLink.className).toMatch(/py-3/);
+  });
 });

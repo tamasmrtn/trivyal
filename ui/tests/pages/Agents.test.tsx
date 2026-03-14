@@ -51,7 +51,7 @@ describe("Agents", () => {
   it("shows loading state initially", () => {
     mockFetchAgents.mockReturnValue(new Promise(() => {}));
     render(<Agents />);
-    expect(screen.getByText(/loading agents/i)).toBeInTheDocument();
+    expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
   });
 
   it("shows error state when fetch fails", async () => {

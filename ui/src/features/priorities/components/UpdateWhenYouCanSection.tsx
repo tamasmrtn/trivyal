@@ -40,7 +40,7 @@ export function UpdateWhenYouCanSection() {
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <select
           value={agentId ?? ""}
           onChange={(e) => setAgentId(e.target.value || undefined)}
@@ -120,7 +120,7 @@ export function UpdateWhenYouCanSection() {
                   className="hover:bg-accent/50 cursor-pointer"
                 >
                   <TableCell
-                    className="max-w-[200px] truncate text-sm"
+                    className="max-w-[120px] truncate text-sm sm:max-w-[200px]"
                     title={image.image_name}
                   >
                     {image.image_name}
