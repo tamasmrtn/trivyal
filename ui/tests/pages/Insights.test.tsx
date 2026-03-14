@@ -92,7 +92,7 @@ describe("Insights page", () => {
         <Insights />
       </MemoryRouter>,
     );
-    expect(screen.getByText(/loading insights/i)).toBeInTheDocument();
+    expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
   });
 
   it("shows error state when fetch fails", async () => {

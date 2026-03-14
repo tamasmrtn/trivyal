@@ -35,7 +35,7 @@ describe("AgentTable", () => {
     render(
       <AgentTable agents={[]} onDelete={vi.fn()} onTriggerScan={vi.fn()} />,
     );
-    expect(screen.getByText(/no agents registered yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/no agents registered/i)).toBeInTheDocument();
   });
 
   it("renders agent names", () => {

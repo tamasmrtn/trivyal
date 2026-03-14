@@ -66,7 +66,7 @@ describe("FindingDetail", () => {
     vi.mocked(fetchFinding).mockReturnValue(new Promise(() => {}));
     vi.mocked(fetchAcceptances).mockReturnValue(new Promise(() => {}));
     renderDetail();
-    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
   });
 
   it("shows error state when fetch fails", async () => {
