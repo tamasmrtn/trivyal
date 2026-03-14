@@ -64,4 +64,11 @@ describe("ScanTable", () => {
     const dashes = screen.getAllByText("—");
     expect(dashes.length).toBeGreaterThanOrEqual(5);
   });
+
+  it("scanned at cell does not have whitespace-nowrap to allow wrapping on mobile", () => {
+    const { container } = render(<ScanTable scans={mockScans} />);
+    const rows = container.querySelectorAll("tbody tr");
+    const firstCell = rows[0].querySelectorAll("td")[0];
+    expect(firstCell.className).not.toContain("whitespace-nowrap");
+  });
 });
