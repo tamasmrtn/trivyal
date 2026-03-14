@@ -64,7 +64,9 @@ describe("Findings", () => {
   it("shows loading state initially", () => {
     mockFetchFindings.mockReturnValue(new Promise(() => {}));
     renderFindings();
-    expect(screen.getByText(/loading findings/i)).toBeInTheDocument();
+    expect(document.querySelectorAll(".animate-pulse").length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("shows error state when fetch fails", async () => {
@@ -154,5 +156,25 @@ describe("Findings", () => {
     expect(mockFetchFindings).toHaveBeenCalledWith(
       expect.objectContaining({ image_name: "nginx:latest" }),
     );
+  });
+
+  it("filter controls container has flex-wrap to prevent mobile overflow", async () => {
+    mockFetchFindings.mockResolvedValue(mockPagedFindings);
+    renderFindings();
+    await screen.findByRole("heading", { name: /^findings$/i });
+
+    const agentSelect = screen.getByLabelText("Filter by agent");
+    // The direct parent of the agent select is the controls container
+    const controlsDiv = agentSelect.parentElement!;
+    expect(controlsDiv.className).toContain("flex-wrap");
+  });
+
+  it("pagination buttons have py-2 for adequate touch target height", async () => {
+    mockFetchFindings.mockResolvedValue({ ...mockPagedFindings, total: 60 });
+    renderFindings();
+    await screen.findByText("CVE-2026-1234");
+
+    const prevBtn = screen.getByRole("button", { name: /previous/i });
+    expect(prevBtn.className).toContain("py-2");
   });
 });

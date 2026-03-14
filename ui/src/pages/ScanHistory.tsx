@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ScanTable, useScans } from "@/features/scans";
 import { useAgents } from "@/features/agents";
 import { Button } from "@/components/ui/button";
@@ -38,8 +39,24 @@ export function ScanHistory() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <p className="text-muted-foreground">Loading scan history...</p>
+      <div>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-9 w-36" />
+        </div>
+        <div className="overflow-hidden rounded-lg border">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex gap-4 border-b px-4 py-3 last:border-0"
+            >
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-28" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -54,7 +71,7 @@ export function ScanHistory() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Scan History</h1>
         <div className="flex items-center gap-3">
           <select

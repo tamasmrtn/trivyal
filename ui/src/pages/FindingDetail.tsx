@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ShieldCheck, ShieldOff } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useFinding } from "@/features/findings";
 import { SeverityBadge } from "@/components/common/SeverityBadge";
 import { FindingStatusBadge, AcceptRiskDialog } from "@/features/findings";
@@ -53,8 +54,23 @@ export function FindingDetail() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="space-y-6">
+        <Skeleton className="h-4 w-32" />
+        <div>
+          <Skeleton className="mb-2 h-8 w-52" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="overflow-hidden rounded-lg border">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex gap-4 border-b px-4 py-3 last:border-0"
+            >
+              <Skeleton className="h-4 w-28 shrink-0" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -106,45 +122,51 @@ export function FindingDetail() {
         <dl className="divide-y text-sm">
           {finding.description && (
             <div className="flex px-4 py-3">
-              <dt className="text-muted-foreground w-40 shrink-0">
+              <dt className="text-muted-foreground w-28 shrink-0">
                 Description
               </dt>
-              <dd className="leading-relaxed">{finding.description}</dd>
+              <dd className="min-w-0 leading-relaxed">{finding.description}</dd>
             </div>
           )}
           <div className="flex px-4 py-3">
-            <dt className="text-muted-foreground w-40 shrink-0">Package</dt>
-            <dd className="font-medium">{finding.package_name}</dd>
+            <dt className="text-muted-foreground w-28 shrink-0">Package</dt>
+            <dd className="min-w-0 font-medium">{finding.package_name}</dd>
           </div>
           <div className="flex px-4 py-3">
-            <dt className="text-muted-foreground w-40 shrink-0">
+            <dt className="text-muted-foreground w-28 shrink-0">
               Installed version
             </dt>
-            <dd className="font-mono text-xs">{finding.installed_version}</dd>
+            <dd className="min-w-0 font-mono text-xs break-all">
+              {finding.installed_version}
+            </dd>
           </div>
           <div className="flex px-4 py-3">
-            <dt className="text-muted-foreground w-40 shrink-0">Fixed in</dt>
-            <dd className="font-mono text-xs">
+            <dt className="text-muted-foreground w-28 shrink-0">Fixed in</dt>
+            <dd className="min-w-0 font-mono text-xs break-all">
               {finding.fixed_version ?? "—"}
             </dd>
           </div>
           <div className="flex px-4 py-3">
-            <dt className="text-muted-foreground w-40 shrink-0">First seen</dt>
-            <dd>{formatDate(finding.first_seen)}</dd>
+            <dt className="text-muted-foreground w-28 shrink-0">First seen</dt>
+            <dd className="min-w-0">{formatDate(finding.first_seen)}</dd>
           </div>
           <div className="flex px-4 py-3">
-            <dt className="text-muted-foreground w-40 shrink-0">Last seen</dt>
-            <dd>{formatDate(finding.last_seen)}</dd>
+            <dt className="text-muted-foreground w-28 shrink-0">Last seen</dt>
+            <dd className="min-w-0">{formatDate(finding.last_seen)}</dd>
           </div>
           {finding.container_name && (
             <div className="flex px-4 py-3">
-              <dt className="text-muted-foreground w-40 shrink-0">Container</dt>
-              <dd className="font-mono text-xs">{finding.container_name}</dd>
+              <dt className="text-muted-foreground w-28 shrink-0">Container</dt>
+              <dd className="min-w-0 font-mono text-xs break-all">
+                {finding.container_name}
+              </dd>
             </div>
           )}
           <div className="flex px-4 py-3">
-            <dt className="text-muted-foreground w-40 shrink-0">Scan result</dt>
-            <dd className="font-mono text-xs">{finding.scan_result_id}</dd>
+            <dt className="text-muted-foreground w-28 shrink-0">Scan result</dt>
+            <dd className="min-w-0 font-mono text-xs break-all">
+              {finding.scan_result_id}
+            </dd>
           </div>
         </dl>
       </div>

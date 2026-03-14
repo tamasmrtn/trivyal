@@ -4,12 +4,13 @@ import { useFixable } from "@/lib/hooks/useFixable";
 import { FindingTable, FindingFilters, useFindings } from "@/features/findings";
 import { useAgents } from "@/features/agents";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { FindingStatus, Severity } from "@/lib/api/types";
 
 export function Findings() {
-  const [searchParams] = useSearchParams();
-  const [severity, setSeverity] = useState<Severity | undefined>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const severity = (searchParams.get("severity") as Severity) || undefined;
   const [status, setStatus] = useState<FindingStatus | undefined>();
   const [agentId, setAgentId] = useState<string | undefined>();
   const [page, setPage] = useState(1);
@@ -41,7 +42,13 @@ export function Findings() {
   }
 
   function handleSeverityChange(value: Severity | undefined) {
-    setSeverity(value);
+    const next = new URLSearchParams(searchParams);
+    if (value) {
+      next.set("severity", value);
+    } else {
+      next.delete("severity");
+    }
+    setSearchParams(next, { replace: true });
     setPage(1);
   }
 
@@ -67,8 +74,28 @@ export function Findings() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <p className="text-muted-foreground">Loading findings...</p>
+      <div>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <Skeleton className="h-8 w-28" />
+          <div className="flex gap-3">
+            <Skeleton className="h-9 w-32" />
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-28" />
+          </div>
+        </div>
+        <div className="rounded-lg border">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex gap-4 border-b px-4 py-3 last:border-0"
+            >
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -92,7 +119,7 @@ export function Findings() {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <select
             value={agentId ?? ""}
             onChange={(e) => handleAgentChange(e.target.value)}
@@ -140,7 +167,7 @@ export function Findings() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="text-foreground hover:bg-accent hover:text-accent-foreground rounded-md border px-3 py-1 text-sm transition-colors disabled:opacity-50"
+              className="text-foreground hover:bg-accent hover:text-accent-foreground rounded-md border px-3 py-2 text-sm transition-colors disabled:opacity-50"
             >
               Previous
             </button>
@@ -150,7 +177,7 @@ export function Findings() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="text-foreground hover:bg-accent hover:text-accent-foreground rounded-md border px-3 py-1 text-sm transition-colors disabled:opacity-50"
+              className="text-foreground hover:bg-accent hover:text-accent-foreground rounded-md border px-3 py-2 text-sm transition-colors disabled:opacity-50"
             >
               Next
             </button>

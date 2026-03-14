@@ -13,6 +13,7 @@ services:
       TRIVYAL_SECRET_KEY: "integration-test-secret-key-32x!"
       TRIVYAL_ADMIN_PASSWORD: "testpassword"
       TRIVYAL_DATA_DIR: /tmp/trivyal-test
+      TRIVYAL_ACCEPTANCE_EXPIRY_INTERVAL: "2"
     tmpfs:
       - /tmp/trivyal-test    # ephemeral SQLite DB — wiped on every compose run
     healthcheck:

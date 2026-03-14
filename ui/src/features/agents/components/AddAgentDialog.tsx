@@ -48,6 +48,7 @@ export function AddAgentDialog({ onCreated }: AddAgentDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AgentRegistered | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   function reset() {
     setName("");
@@ -55,6 +56,13 @@ export function AddAgentDialog({ onCreated }: AddAgentDialogProps) {
     setError(null);
     setResult(null);
     setCopied(false);
+    setCopiedField(null);
+  }
+
+  async function handleCopyField(text: string, field: string) {
+    await navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
   }
 
   function handleOpenChange(next: boolean) {
@@ -145,16 +153,48 @@ export function AddAgentDialog({ onCreated }: AddAgentDialogProps) {
             </DialogHeader>
             <div className="min-w-0 space-y-4 py-4">
               <div>
-                <p className="mb-1 text-sm font-medium">Token</p>
-                <code className="bg-muted block rounded px-3 py-2 text-sm break-all">
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-sm font-medium">Token</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopyField(result.token, "token")}
+                    aria-label="Copy token"
+                  >
+                    {copiedField === "token" ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    {copiedField === "token" ? "Copied" : "Copy"}
+                  </Button>
+                </div>
+                <pre className="bg-input overflow-x-auto rounded-md border p-3 font-mono text-xs break-all">
                   {result.token}
-                </code>
+                </pre>
               </div>
               <div>
-                <p className="mb-1 text-sm font-medium">Hub Public Key</p>
-                <code className="bg-muted block rounded px-3 py-2 text-sm break-all">
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-sm font-medium">Hub Public Key</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      handleCopyField(result.hub_public_key, "key")
+                    }
+                    aria-label="Copy hub public key"
+                  >
+                    {copiedField === "key" ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    {copiedField === "key" ? "Copied" : "Copy"}
+                  </Button>
+                </div>
+                <pre className="bg-input overflow-x-auto rounded-md border p-3 font-mono text-xs break-all">
                   {result.hub_public_key}
-                </code>
+                </pre>
               </div>
               <div>
                 <div className="mb-1 flex items-center justify-between">
@@ -173,7 +213,7 @@ export function AddAgentDialog({ onCreated }: AddAgentDialogProps) {
                     {copied ? "Copied" : "Copy"}
                   </Button>
                 </div>
-                <pre className="bg-muted overflow-x-auto rounded p-3 text-xs">
+                <pre className="bg-input overflow-x-auto rounded-md border p-3 font-mono text-xs">
                   {buildDockerCompose(result.token, result.hub_public_key)}
                 </pre>
               </div>

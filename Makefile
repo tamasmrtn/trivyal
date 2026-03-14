@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 .PHONY: init init-hub init-agent init-ui init-hooks init-integration \
         test test-hub test-agent test-ui test-integration \
         dev-hub dev-agent dev-ui lint \
@@ -55,8 +57,7 @@ up-hub:
 	docker compose -f docker-compose.hub.yml up --build -d
 
 up-agent:
-	set -a && source .env && set +a
-	docker compose -f docker-compose.agent.yml up --build -d
+	set -a && . .env && set +a && docker compose -f docker-compose.agent.yml up --build -d
 
 down-hub:
 	docker compose -f docker-compose.hub.yml down

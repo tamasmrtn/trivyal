@@ -193,6 +193,27 @@ describe("FixTodaySection", () => {
     expect(useMisconfigs).toHaveBeenCalled();
   });
 
+  it("container and title cells have max-w and truncate to prevent overflow", () => {
+    vi.mocked(useMisconfigs).mockReturnValue({
+      data: [mockMisconfig],
+      total: 1,
+      loading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const { container } = render(<FixTodaySection />);
+    const rows = container.querySelectorAll("tbody tr");
+    const cells = rows[0].querySelectorAll("td");
+    // Container is 2nd cell (index 1), Issue is 3rd (index 2)
+    const containerCell = cells[1];
+    const issueCell = cells[2];
+    expect(containerCell.className).toMatch(/max-w-/);
+    expect(containerCell.className).toContain("truncate");
+    expect(issueCell.className).toMatch(/max-w-/);
+    expect(issueCell.className).toContain("truncate");
+  });
+
   it("opens detail dialog when row is clicked", async () => {
     vi.mocked(useMisconfigs).mockReturnValue({
       data: [mockMisconfig],

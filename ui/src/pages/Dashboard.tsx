@@ -1,7 +1,9 @@
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { SummaryCards, useDashboard } from "@/features/dashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Wrench, ArrowUpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFixable } from "@/lib/hooks/useFixable";
@@ -13,8 +15,35 @@ export function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <p className="text-muted-foreground">Loading dashboard...</p>
+      <div>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-8 w-28" />
+        </div>
+        <div className="space-y-8">
+          <section>
+            <Skeleton className="mb-4 h-6 w-36" />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="rounded-lg border p-6">
+                  <Skeleton className="mb-4 h-4 w-20" />
+                  <Skeleton className="h-8 w-12" />
+                </div>
+              ))}
+            </div>
+          </section>
+          <section>
+            <Skeleton className="mb-4 h-6 w-24" />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="rounded-lg border p-6">
+                  <Skeleton className="mb-4 h-4 w-20" />
+                  <Skeleton className="h-8 w-12" />
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
       </div>
     );
   }
@@ -48,8 +77,16 @@ export function Dashboard() {
       <div className="mt-8 border-t pt-8">
         <div className="grid gap-4 sm:grid-cols-2">
           <Card
+            role="link"
+            tabIndex={0}
             className="hover:border-primary/50 cursor-pointer transition-colors"
             onClick={() => navigate("/priorities")}
+            onKeyDown={(e: React.KeyboardEvent) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate("/priorities");
+              }
+            }}
           >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Fix Today</CardTitle>
@@ -65,8 +102,16 @@ export function Dashboard() {
             </CardContent>
           </Card>
           <Card
+            role="link"
+            tabIndex={0}
             className="hover:border-primary/50 cursor-pointer transition-colors"
             onClick={() => navigate("/priorities")}
+            onKeyDown={(e: React.KeyboardEvent) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate("/priorities");
+              }
+            }}
           >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">
