@@ -214,6 +214,192 @@ class TestAgentClientScanCycle:
         mock_ws.send.assert_not_called()
 
 
+class TestScanCycleDigestSkip:
+    async def test_skips_image_when_digest_matches_cache(self, tmp_path):
+        from trivyal_agent.core.cache import save
+
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        # Pre-populate cache with a known digest
+        save(tmp_path, "nginx:latest", {"ArtifactName": "nginx:latest"}, image_digest="sha256:abc")
+
+        mock_ws = AsyncMock()
+        # Container reports the same digest that is in the cache
+        containers = [{"image_name": "nginx:latest", "container_name": "my-nginx", "image_digest": "sha256:abc"}]
+
+        with (
+            patch("trivyal_agent.ws.client.list_running_images", return_value=containers),
+            patch("trivyal_agent.ws.client.scan_all_images", return_value=[]) as mock_scan,
+            patch("trivyal_agent.ws.client.run_misconfig_checks", return_value=[]),
+        ):
+            await client._run_scan_cycle(mock_ws)
+
+        # scan_all_images is never reached when all images are skipped
+        mock_scan.assert_not_called()
+        mock_ws.send.assert_not_called()
+
+    async def test_scans_image_when_digest_differs_from_cache(self, tmp_path):
+        from trivyal_agent.core.cache import save
+
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        # Cache holds an old digest
+        save(tmp_path, "nginx:latest", {"ArtifactName": "nginx:latest"}, image_digest="sha256:old")
+
+        mock_ws = AsyncMock()
+        sent = []
+        mock_ws.send = AsyncMock(side_effect=lambda m: sent.append(json.loads(m)))
+
+        scan_result = {"ArtifactName": "nginx:latest", "Results": []}
+        # Container now reports a newer digest
+        containers = [{"image_name": "nginx:latest", "container_name": "my-nginx", "image_digest": "sha256:new"}]
+
+        with (
+            patch("trivyal_agent.ws.client.list_running_images", return_value=containers),
+            patch("trivyal_agent.ws.client.scan_all_images", return_value=[scan_result]) as mock_scan,
+            patch("trivyal_agent.ws.client.save"),
+            patch("trivyal_agent.ws.client.run_misconfig_checks", return_value=[]),
+        ):
+            await client._run_scan_cycle(mock_ws)
+
+        mock_scan.assert_called_once_with(["nginx:latest"])
+        assert any(m["type"] == "scan_result" for m in sent)
+
+    async def test_scans_image_when_no_cache_entry_exists(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        mock_ws = AsyncMock()
+        sent = []
+        mock_ws.send = AsyncMock(side_effect=lambda m: sent.append(json.loads(m)))
+
+        scan_result = {"ArtifactName": "redis:7", "Results": []}
+        containers = [{"image_name": "redis:7", "container_name": "my-redis", "image_digest": "sha256:aabbcc"}]
+
+        with (
+            patch("trivyal_agent.ws.client.list_running_images", return_value=containers),
+            patch("trivyal_agent.ws.client.scan_all_images", return_value=[scan_result]) as mock_scan,
+            patch("trivyal_agent.ws.client.save"),
+            patch("trivyal_agent.ws.client.run_misconfig_checks", return_value=[]),
+        ):
+            await client._run_scan_cycle(mock_ws)
+
+        mock_scan.assert_called_once_with(["redis:7"])
+
+    async def test_scans_image_when_digest_is_empty(self, tmp_path):
+        """An empty digest (inspect failed) is never treated as a match — always scan."""
+        from trivyal_agent.core.cache import save
+
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        # Cache also has empty digest — must NOT skip
+        save(tmp_path, "nginx:latest", {"ArtifactName": "nginx:latest"}, image_digest="")
+
+        mock_ws = AsyncMock()
+        scan_result = {"ArtifactName": "nginx:latest", "Results": []}
+        containers = [{"image_name": "nginx:latest", "container_name": "my-nginx", "image_digest": ""}]
+
+        with (
+            patch("trivyal_agent.ws.client.list_running_images", return_value=containers),
+            patch("trivyal_agent.ws.client.scan_all_images", return_value=[scan_result]) as mock_scan,
+            patch("trivyal_agent.ws.client.save"),
+            patch("trivyal_agent.ws.client.run_misconfig_checks", return_value=[]),
+        ):
+            await client._run_scan_cycle(mock_ws)
+
+        mock_scan.assert_called_once_with(["nginx:latest"])
+
+    async def test_misconfig_checks_run_even_when_all_images_skipped(self, tmp_path):
+        from trivyal_agent.core.cache import save
+
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        save(tmp_path, "nginx:latest", {"ArtifactName": "nginx:latest"}, image_digest="sha256:abc")
+
+        mock_ws = AsyncMock()
+        sent = []
+        mock_ws.send = AsyncMock(side_effect=lambda m: sent.append(json.loads(m)))
+
+        containers = [{"image_name": "nginx:latest", "container_name": "my-nginx", "image_digest": "sha256:abc"}]
+        misconfig_result = {
+            "container_id": "abc",
+            "container_name": "my-nginx",
+            "image_name": "nginx:latest",
+            "findings": [
+                {"check_id": "NET_001", "severity": "MEDIUM", "title": "Host network", "fix_guideline": "Fix it"}
+            ],
+        }
+
+        with (
+            patch("trivyal_agent.ws.client.list_running_images", return_value=containers),
+            patch("trivyal_agent.ws.client.scan_all_images", return_value=[]),
+            patch("trivyal_agent.ws.client.run_misconfig_checks", return_value=[misconfig_result]),
+        ):
+            await client._run_scan_cycle(mock_ws)
+
+        assert any(m["type"] == "misconfig_result" for m in sent)
+
+    async def test_digest_persisted_to_cache_after_scan(self, tmp_path):
+        from trivyal_agent.core.cache import get_cached_digest
+
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        mock_ws = AsyncMock()
+        scan_result = {"ArtifactName": "alpine:3", "Results": []}
+        containers = [{"image_name": "alpine:3", "container_name": "c1", "image_digest": "sha256:xyz"}]
+
+        with (
+            patch("trivyal_agent.ws.client.list_running_images", return_value=containers),
+            patch("trivyal_agent.ws.client.scan_all_images", return_value=[scan_result]),
+            patch("trivyal_agent.ws.client.run_misconfig_checks", return_value=[]),
+        ):
+            await client._run_scan_cycle(mock_ws)
+
+        assert get_cached_digest(tmp_path, "alpine:3") == "sha256:xyz"
+
+    async def test_rescans_image_when_digest_matches_but_cache_is_stale(self, tmp_path):
+        """A digest match must not prevent scanning when the cache is older than max_scan_age_days."""
+        import time
+
+        from trivyal_agent.core.cache import save
+
+        settings = _make_settings(data_dir=str(tmp_path), max_scan_age_days=7)
+        client = AgentClient(settings)
+
+        # Cache has the same digest but was written 8 days ago
+        eight_days_ago = time.time() - 8 * 86400
+        save(
+            tmp_path,
+            "nginx:latest",
+            {"ArtifactName": "nginx:latest"},
+            image_digest="sha256:abc",
+            scanned_at=eight_days_ago,
+        )
+
+        mock_ws = AsyncMock()
+        sent = []
+        mock_ws.send = AsyncMock(side_effect=lambda m: sent.append(json.loads(m)))
+
+        scan_result = {"ArtifactName": "nginx:latest", "Results": []}
+        containers = [{"image_name": "nginx:latest", "container_name": "my-nginx", "image_digest": "sha256:abc"}]
+
+        with (
+            patch("trivyal_agent.ws.client.list_running_images", return_value=containers),
+            patch("trivyal_agent.ws.client.scan_all_images", return_value=[scan_result]) as mock_scan,
+            patch("trivyal_agent.ws.client.save"),
+            patch("trivyal_agent.ws.client.run_misconfig_checks", return_value=[]),
+        ):
+            await client._run_scan_cycle(mock_ws)
+
+        mock_scan.assert_called_once_with(["nginx:latest"])
+        assert any(m["type"] == "scan_result" for m in sent)
+
+
 class TestFlushCache:
     """Tests for _flush_cache — specifically the cache-clearing postcondition.
 
