@@ -28,8 +28,9 @@ Trivyal is designed for homelabs and small multi-server Docker environments. A l
 - Aggregated vulnerability view across all hosts — filterable by severity, status, and fixable CVEs
 - Per-host and per-container drill-down
 - Finding timeline — tracks when CVEs appeared and when they were resolved
+- Auto-marks vulnerability findings as **FIXED** when absent from a subsequent scan
 - Diff view between scans — highlights new and fixed findings
-- Risk acceptance — mark a finding as accepted with a reason and expiry date
+- Risk acceptance — mark a finding as accepted with a reason and expiry date; automatically re-activates when the acceptance expires
 - False positive flagging per finding
 - Full scan history log per host
 - Agent management UI — add, remove, and view agents; copy-paste Docker Compose snippet for quick deploy
@@ -39,6 +40,7 @@ Trivyal is designed for homelabs and small multi-server Docker environments. A l
 ### Agent
 - Automatic discovery of all running containers via Docker socket
 - Trivy image scan per container on a configurable schedule (default: nightly)
+- **Digest-based scan skipping** — unchanged images are skipped entirely; forced rescan after a configurable number of days regardless
 - **Docker configuration scanning** — inspects each container via the Docker API and flags misconfigurations (privileged mode, host network/PID/IPC, missing read-only root filesystem, missing resource limits, sensitive volume mounts)
 - On-demand scan trigger from hub
 - Ships results to hub via authenticated WebSocket connection
@@ -68,7 +70,6 @@ Trivyal uses a hub-agent model. The hub is the central server that aggregates sc
 │  │  - Agent manager        │    │       │              │                   │
 │  │  - Scan aggregator      │    │       │   /var/run/docker.sock (ro)      │
 │  │  - Auth / token mgmt    │    │       └──────────────────────────────────┘
-│  │  - Notification sender  │    │
 │  └──────────┬──────────────┘    │
 │             │                   │
 │  ┌──────────▼──────────────┐    │
@@ -131,12 +132,13 @@ Open `http://<hub-host>:8099` in your browser and log in with your admin credent
 
 1. Go to **Agents** in the UI and click **Add Agent**.
 2. Copy the **Token** and **Hub Public Key** shown in the dialog.
-3. On the agent host, clone the repository and create a `.env`:
+3. On the agent host, clone the repository and set the required variables:
 
 ```env
 TRIVYAL_HUB_URL=ws://<hub-host>:8099
-AGENT_TOKEN=<token from UI>
-AGENT_HUB_KEY=<hub public key from UI>
+TRIVYAL_TOKEN=<token from UI>
+TRIVYAL_KEY=<hub public key from UI>
+DOCKER_GID=<output of: stat -c '%g' /var/run/docker.sock>
 ```
 
 4. Build and start the agent:
@@ -161,8 +163,10 @@ All variables use the `TRIVYAL_` prefix and are read from the environment or a `
 | `TRIVYAL_ADMIN_PASSWORD` | no | `admin` | Password for the web UI admin login. Change this. |
 | `TRIVYAL_DATA_DIR` | no | `/app/data` | Directory where the SQLite database is stored. |
 | `TRIVYAL_DATABASE_URL` | no | derived | Full SQLite connection URL. Overrides `TRIVYAL_DATA_DIR` if set. |
+| `TRIVYAL_TZ` | no | `UTC` | Timezone for all hub timestamps (e.g. `Europe/London`). |
 | `TRIVYAL_HOST` | no | `0.0.0.0` | Interface to bind. |
 | `TRIVYAL_PORT` | no | `8099` | Port to listen on. |
+| `TRIVYAL_ACCEPTANCE_EXPIRY_INTERVAL` | no | `3600` | Seconds between risk-acceptance expiry sweeps. |
 | `TRIVYAL_STATIC_DIR` | no | `/app/static` | Directory containing the built React UI. Present automatically in Docker; not used in dev. |
 
 ### Agent
@@ -173,6 +177,7 @@ All variables use the `TRIVYAL_` prefix and are read from the environment or a `
 | `TRIVYAL_TOKEN` | **yes** | — | Registration token generated in the hub UI (Agents → Add Agent). |
 | `TRIVYAL_KEY` | **yes** | — | Hub Ed25519 public key shown alongside the token in the hub UI. |
 | `TRIVYAL_SCAN_SCHEDULE` | no | `0 2 * * *` | Cron expression for scheduled scans (default: nightly at 02:00). |
+| `TRIVYAL_MAX_SCAN_AGE_DAYS` | no | `3` | Force a full rescan after this many days even if the image digest is unchanged. |
 | `TRIVYAL_DATA_DIR` | no | `/app/data` | Directory for the local scan result cache. |
 | `TRIVYAL_HEARTBEAT_INTERVAL` | no | `30` | Seconds between heartbeat messages sent to the hub. |
 | `TRIVYAL_RECONNECT_DELAY` | no | `10` | Seconds to wait before reconnecting after a dropped connection. |
@@ -183,6 +188,7 @@ All variables use the `TRIVYAL_` prefix and are read from the environment or a `
 |---|---|---|
 | `AGENT_TOKEN` | — | Passed as `TRIVYAL_TOKEN` to the co-located agent in `docker-compose.hub.yml`. |
 | `AGENT_HUB_KEY` | — | Passed as `TRIVYAL_KEY` to the co-located agent in `docker-compose.hub.yml`. |
+| `DOCKER_GID` | `999` | GID of `/var/run/docker.sock` on the agent host. Get it with `stat -c '%g' /var/run/docker.sock`. |
 
 ---
 
