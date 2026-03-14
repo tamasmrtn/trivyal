@@ -196,6 +196,33 @@ describe("Insights page", () => {
     expect(fetchInsightsSummary).toHaveBeenCalledWith(30, true, undefined);
   });
 
+  it("inner controls container has flex-wrap to prevent mobile overflow", async () => {
+    setupMocks();
+    render(
+      <MemoryRouter>
+        <Insights />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", { name: /^insights$/i });
+
+    const agentSelect = screen.getByLabelText("Filter by agent");
+    const controlsDiv = agentSelect.parentElement!;
+    expect(controlsDiv.className).toContain("flex-wrap");
+  });
+
+  it("time window buttons have py-2 for adequate touch target height", async () => {
+    setupMocks();
+    render(
+      <MemoryRouter>
+        <Insights />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", { name: /^insights$/i });
+
+    const btn7d = screen.getByRole("button", { name: "7d" });
+    expect(btn7d.className).toContain("py-2");
+  });
+
   it("fetches with correct params when fixable and window are set", async () => {
     setupMocks();
     const user = userEvent.setup();

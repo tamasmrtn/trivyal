@@ -63,7 +63,7 @@ export function Insights() {
       {/* Page header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Insights</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <select
             value={agentId ?? ""}
             onChange={(e) => setAgentId(e.target.value || undefined)}
@@ -83,7 +83,7 @@ export function Insights() {
                 key={value}
                 onClick={() => setWindow(value)}
                 className={cn(
-                  "rounded px-3 py-1 text-sm font-medium transition-colors",
+                  "rounded px-3 py-2 text-sm font-medium transition-colors",
                   window === value
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground",
