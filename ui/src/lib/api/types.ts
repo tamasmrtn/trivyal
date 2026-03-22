@@ -156,6 +156,50 @@ export interface MisconfigFindingResponse {
 export interface AgentRef {
   id: string;
   name: string;
+  container_id: string;
+  patching_available?: boolean;
+}
+
+export type PatchStatus = "pending" | "running" | "completed" | "failed";
+
+export type RestartStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "blocked";
+
+export interface RestartResponse {
+  id: string;
+  patch_request_id: string;
+  container_id: string;
+  status: RestartStatus;
+  block_reason: string | null;
+  error_message: string | null;
+  requested_at: string;
+  completed_at: string | null;
+  reverted_at: string | null;
+}
+
+export interface PatchResponse {
+  id: string;
+  agent_id: string;
+  container_id: string;
+  image_name: string;
+  patched_tag: string | null;
+  status: PatchStatus;
+  original_finding_count: number | null;
+  patched_finding_count: number | null;
+  error_message: string | null;
+  requested_at: string;
+  completed_at: string | null;
+  restarts: RestartResponse[];
+}
+
+export interface PatchSummary {
+  total_patched: number;
+  findings_resolved: number;
+  patching_available: boolean;
 }
 
 export interface ImageResponse {

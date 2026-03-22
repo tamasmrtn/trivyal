@@ -1,17 +1,31 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { SummaryCards, useDashboard } from "@/features/dashboard";
+import {
+  PatchSummaryCard,
+  SummaryCards,
+  useDashboard,
+} from "@/features/dashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Wrench, ArrowUpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFixable } from "@/lib/hooks/useFixable";
+import { fetchPatchSummary } from "@/lib/api/patches";
+import type { PatchSummary } from "@/lib/api/types";
+import { useEffect, useState } from "react";
 
 export function Dashboard() {
   const [fixable, toggleFixable] = useFixable();
   const { data, loading, error } = useDashboard(fixable || undefined);
   const navigate = useNavigate();
+  const [patchSummary, setPatchSummary] = useState<PatchSummary | null>(null);
+
+  useEffect(() => {
+    fetchPatchSummary()
+      .then(setPatchSummary)
+      .catch(() => {});
+  }, []);
 
   if (loading) {
     return (
@@ -75,7 +89,7 @@ export function Dashboard() {
       <SummaryCards data={data} />
 
       <div className="mt-8 border-t pt-8">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Card
             role="link"
             tabIndex={0}
@@ -126,6 +140,12 @@ export function Dashboard() {
               </p>
             </CardContent>
           </Card>
+          {patchSummary?.patching_available && (
+            <PatchSummaryCard
+              totalPatched={patchSummary.total_patched}
+              findingsResolved={patchSummary.findings_resolved}
+            />
+          )}
         </div>
       </div>
     </div>

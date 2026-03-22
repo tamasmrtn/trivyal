@@ -6,6 +6,7 @@ import {
   ListChecks,
   TrendingUp,
   History,
+  Wrench,
   LogOut,
   Sun,
   Moon,
@@ -28,6 +29,7 @@ const navItems = [
   { to: "/priorities", icon: ListChecks, label: "Priorities" },
   { to: "/findings", icon: ShieldAlert, label: "Findings" },
   { to: "/agents", icon: Server, label: "Agents" },
+  { to: "/patches", icon: Wrench, label: "Patches" },
   { to: "/insights", icon: TrendingUp, label: "Insights" },
   { to: "/scans", icon: History, label: "Scan History" },
 ];

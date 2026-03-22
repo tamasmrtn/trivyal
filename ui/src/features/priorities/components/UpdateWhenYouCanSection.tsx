@@ -15,11 +15,17 @@ import { SeverityBadge } from "@/components/common/SeverityBadge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useImages } from "../hooks/useImages";
+import { PatchDialog } from "./PatchDialog";
 import type { Severity } from "@/lib/api/types";
 
 export function UpdateWhenYouCanSection() {
   const [fixableOnly, toggleFixableOnly] = useFixable();
   const [agentId, setAgentId] = useState<string | undefined>();
+  const [patchTarget, setPatchTarget] = useState<{
+    agentId: string;
+    containerId: string;
+    imageName: string;
+  } | null>(null);
   const navigate = useNavigate();
 
   const { data: agents } = useAgents({ page_size: 200 });
@@ -106,6 +112,9 @@ export function UpdateWhenYouCanSection() {
                 <TableHead className="text-muted-foreground hidden text-xs tracking-wide uppercase sm:table-cell">
                   Severity
                 </TableHead>
+                <TableHead className="text-muted-foreground text-xs tracking-wide uppercase">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -152,6 +161,30 @@ export function UpdateWhenYouCanSection() {
                       )}
                     </div>
                   </TableCell>
+                  <TableCell>
+                    {image.fixable_cves > 0 &&
+                      image.agents.some((a) => a.patching_available) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const patchAgent = image.agents.find(
+                              (a) => a.patching_available,
+                            );
+                            if (patchAgent) {
+                              setPatchTarget({
+                                agentId: patchAgent.id,
+                                containerId: patchAgent.container_id,
+                                imageName: image.image_name,
+                              });
+                            }
+                          }}
+                        >
+                          Patch
+                        </Button>
+                      )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -160,6 +193,17 @@ export function UpdateWhenYouCanSection() {
             {total} image{total !== 1 ? "s" : ""}
           </p>
         </>
+      )}
+      {patchTarget && (
+        <PatchDialog
+          open={!!patchTarget}
+          onOpenChange={(open) => {
+            if (!open) setPatchTarget(null);
+          }}
+          agentId={patchTarget.agentId}
+          containerId={patchTarget.containerId}
+          imageName={patchTarget.imageName}
+        />
       )}
     </section>
   );

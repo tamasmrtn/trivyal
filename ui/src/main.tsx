@@ -9,6 +9,7 @@ import { Findings } from "@/pages/Findings";
 import { FindingDetail } from "@/pages/FindingDetail";
 import { Priorities } from "@/pages/Priorities";
 import { Insights } from "@/pages/Insights";
+import { Patches } from "@/pages/Patches";
 import { ScanHistory } from "@/pages/ScanHistory";
 import { Login } from "@/pages/Login";
 import "./app.css";
@@ -35,6 +36,7 @@ function App() {
         <Route path="findings" element={<Findings />} />
         <Route path="findings/:id" element={<FindingDetail />} />
         <Route path="priorities" element={<Priorities />} />
+        <Route path="patches" element={<Patches />} />
         <Route path="insights" element={<Insights />} />
         <Route path="scans" element={<ScanHistory />} />
       </Route>
