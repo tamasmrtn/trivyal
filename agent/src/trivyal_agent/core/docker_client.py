@@ -6,6 +6,8 @@ import os
 import platform
 import socket
 
+from trivyal_agent.config import settings
+
 from .docker_socket import _docker
 
 logger = logging.getLogger(__name__)
@@ -40,9 +42,22 @@ def _get_docker_version() -> str:
         return "unknown"
 
 
+def _check_sidecar_health() -> bool:
+    """Check if the patch sidecar is reachable (sync)."""
+    if not settings.patch_sidecar_url:
+        return False
+    try:
+        from trivyal_agent.core.sidecar_client import SidecarClient
+
+        return SidecarClient(settings.patch_sidecar_url).health()
+    except Exception:
+        return False
+
+
 async def collect_host_metadata() -> dict:
     """Collect host metadata to report to the hub."""
     docker_version = await asyncio.to_thread(_get_docker_version)
+    patching_available = await asyncio.to_thread(_check_sidecar_health)
     return {
         "hostname": socket.gethostname(),
         "os": platform.system(),
@@ -50,4 +65,5 @@ async def collect_host_metadata() -> dict:
         "architecture": platform.machine(),
         "docker_version": docker_version,
         "agent_pid": os.getpid(),
+        "patching_available": patching_available,
     }

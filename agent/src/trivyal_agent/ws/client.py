@@ -12,6 +12,7 @@ from trivyal_agent.core.cache import clear, get_cached_digest, is_cache_stale, l
 from trivyal_agent.core.docker_client import collect_host_metadata, list_running_images
 from trivyal_agent.core.misconfig_runner import run_misconfig_checks
 from trivyal_agent.core.scheduler import run_scheduler
+from trivyal_agent.core.sidecar_client import SidecarClient
 from trivyal_agent.core.trivy_runner import scan_all_images
 from trivyal_agent.health import HealthServer
 
@@ -116,6 +117,14 @@ class AgentClient:
                     logger.info("Received on-demand scan trigger from hub")
                     asyncio.create_task(self._run_scan_cycle(ws))
 
+                elif msg_type == "patch_trigger":
+                    logger.info("Received patch trigger from hub")
+                    asyncio.create_task(self._handle_patch(ws, data))
+
+                elif msg_type == "restart_trigger":
+                    logger.info("Received restart trigger from hub")
+                    asyncio.create_task(self._handle_restart(ws, data))
+
                 elif msg_type == "heartbeat_ack":
                     logger.debug("Heartbeat acknowledged by hub")
 
@@ -215,6 +224,112 @@ class AgentClient:
                 clear(self._settings.data_dir, image_name)
             except Exception:
                 logger.exception("Failed to flush cached result for %s — will retry on reconnect", image_name)
+
+    # ── Patching ──────────────────────────────────────────────────────────────
+
+    async def _handle_patch(self, ws: ws_client.ClientConnection, data: dict) -> None:
+        """Forward a patch request to the sidecar and stream results back to hub."""
+        request_id = data.get("request_id")
+        image = data.get("image")
+        trivy_report = data.get("trivy_report")
+        patched_tag = data.get("patched_tag")
+
+        if not self._settings.patch_sidecar_url:
+            await ws.send(
+                json.dumps(
+                    {
+                        "type": "patch_result",
+                        "request_id": request_id,
+                        "status": "failed",
+                        "error": "Patch sidecar not configured",
+                    }
+                )
+            )
+            return
+
+        sidecar = SidecarClient(self._settings.patch_sidecar_url)
+        loop = asyncio.get_event_loop()
+
+        def on_event(event: dict) -> None:
+            if event.get("type") == "log":
+                asyncio.run_coroutine_threadsafe(
+                    ws.send(
+                        json.dumps(
+                            {
+                                "type": "patch_log",
+                                "request_id": request_id,
+                                "line": event["line"],
+                            }
+                        )
+                    ),
+                    loop,
+                )
+
+        try:
+            events = await asyncio.to_thread(sidecar.patch, image, trivy_report, patched_tag, on_event)
+        except Exception as exc:
+            logger.exception("Sidecar patch request failed")
+            await ws.send(
+                json.dumps(
+                    {
+                        "type": "patch_result",
+                        "request_id": request_id,
+                        "status": "failed",
+                        "error": str(exc),
+                    }
+                )
+            )
+            return
+
+        for event in events:
+            if event.get("type") == "result":
+                await ws.send(
+                    json.dumps(
+                        {
+                            "type": "patch_result",
+                            "request_id": request_id,
+                            "status": event.get("status"),
+                            "patched_tag": event.get("patched_tag"),
+                            "error": event.get("error"),
+                        }
+                    )
+                )
+
+    async def _handle_restart(self, ws: ws_client.ClientConnection, data: dict) -> None:
+        """Forward a restart request to the sidecar."""
+        request_id = data.get("request_id")
+        container_id = data.get("container_id")
+        image = data.get("image")
+
+        if not self._settings.patch_sidecar_url:
+            await ws.send(
+                json.dumps(
+                    {
+                        "type": "restart_result",
+                        "request_id": request_id,
+                        "status": "failed",
+                        "error": "Patch sidecar not configured",
+                    }
+                )
+            )
+            return
+
+        sidecar = SidecarClient(self._settings.patch_sidecar_url)
+        try:
+            result = await asyncio.to_thread(sidecar.restart, container_id, image)
+        except Exception as exc:
+            logger.exception("Sidecar restart request failed")
+            result = {"status": "failed", "error": str(exc)}
+
+        await ws.send(
+            json.dumps(
+                {
+                    "type": "restart_result",
+                    "request_id": request_id,
+                    **result,
+                }
+            )
+        )
 
     # ── Heartbeat ─────────────────────────────────────────────────────────────
 

@@ -503,3 +503,89 @@ class TestFlushCache:
         await client._flush_cache(mock_ws)
 
         mock_ws.send.assert_not_called()
+
+
+class TestPatchTrigger:
+    async def test_sends_patch_log_and_result_to_hub(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path), patch_sidecar_url="http://localhost:8101")
+        client = AgentClient(settings)
+
+        mock_ws = AsyncMock()
+        sent = []
+        mock_ws.send = AsyncMock(side_effect=lambda m: sent.append(json.loads(m)))
+
+        sidecar_events = [
+            {"type": "log", "line": "Patching layer 1"},
+            {"type": "result", "status": "completed", "patched_tag": "nginx:1.25-patched"},
+        ]
+
+        data = {
+            "type": "patch_trigger",
+            "request_id": "req-1",
+            "image": "nginx:1.25",
+            "trivy_report": {"Results": []},
+            "patched_tag": "nginx:1.25-patched",
+        }
+
+        with patch("trivyal_agent.ws.client.SidecarClient") as MockSidecar:
+            MockSidecar.return_value.patch.return_value = sidecar_events
+            await client._handle_patch(mock_ws, data)
+
+        types = [m["type"] for m in sent]
+        assert "patch_log" in types
+        assert "patch_result" in types
+        result = next(m for m in sent if m["type"] == "patch_result")
+        assert result["status"] == "completed"
+        assert result["request_id"] == "req-1"
+
+    async def test_sends_failure_when_sidecar_not_configured(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        mock_ws = AsyncMock()
+        sent = []
+        mock_ws.send = AsyncMock(side_effect=lambda m: sent.append(json.loads(m)))
+
+        await client._handle_patch(mock_ws, {"type": "patch_trigger", "request_id": "req-2"})
+
+        assert len(sent) == 1
+        assert sent[0]["type"] == "patch_result"
+        assert sent[0]["status"] == "failed"
+
+
+class TestRestartTrigger:
+    async def test_sends_restart_result_to_hub(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path), patch_sidecar_url="http://localhost:8101")
+        client = AgentClient(settings)
+
+        mock_ws = AsyncMock()
+        sent = []
+        mock_ws.send = AsyncMock(side_effect=lambda m: sent.append(json.loads(m)))
+
+        data = {
+            "type": "restart_trigger",
+            "request_id": "req-3",
+            "container_id": "cid-123",
+            "image": "nginx:1.25-patched",
+        }
+
+        with patch("trivyal_agent.ws.client.SidecarClient") as MockSidecar:
+            MockSidecar.return_value.restart.return_value = {"status": "completed", "new_container_id": "new-456"}
+            await client._handle_restart(mock_ws, data)
+
+        assert len(sent) == 1
+        assert sent[0]["type"] == "restart_result"
+        assert sent[0]["status"] == "completed"
+        assert sent[0]["request_id"] == "req-3"
+
+    async def test_sends_failure_when_sidecar_not_configured(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        mock_ws = AsyncMock()
+        sent = []
+        mock_ws.send = AsyncMock(side_effect=lambda m: sent.append(json.loads(m)))
+
+        await client._handle_restart(mock_ws, {"type": "restart_trigger", "request_id": "req-4"})
+
+        assert sent[0]["status"] == "failed"

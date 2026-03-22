@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     reconnect_delay: int = 10  # seconds before reconnect attempt
     health_port: int = 8100  # port for the HTTP health endpoint
     max_scan_age_days: int = 3  # force rescan after this many days even if digest unchanged
+    patch_sidecar_url: str | None = None  # e.g. http://trivyal-patcher:8101
 
 
 settings = Settings()
