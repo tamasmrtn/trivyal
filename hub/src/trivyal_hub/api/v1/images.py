@@ -27,14 +27,16 @@ async def list_images(
     session: AsyncSession = Depends(get_session),
 ):
     # Fetch all containers with their agents
-    container_q = select(Container, Agent.id, Agent.name).join(Agent, Container.agent_id == Agent.id)
+    container_q = select(Container, Agent.id, Agent.name, Agent.host_metadata).join(
+        Agent, Container.agent_id == Agent.id
+    )
     if agent_id:
         container_q = container_q.where(Container.agent_id == agent_id)
     container_rows = (await session.execute(container_q)).all()
 
     # Group containers by image_name
     image_groups: dict[str, dict] = {}
-    for container, aid, aname in container_rows:
+    for container, aid, aname, host_metadata in container_rows:
         key = container.image_name
         if key not in image_groups:
             image_groups[key] = {
@@ -47,7 +49,12 @@ async def list_images(
             }
         group = image_groups[key]
         group["container_ids"].append(container.id)
-        group["agents"][aid] = aname
+        if aid not in group["agents"]:
+            group["agents"][aid] = {
+                "name": aname,
+                "container_id": container.id,
+                "patching_available": (host_metadata or {}).get("patching_available", False),
+            }
         if container.last_scanned and (group["last_scanned"] is None or container.last_scanned > group["last_scanned"]):
             group["last_scanned"] = container.last_scanned
         if container.image_tag:
@@ -106,7 +113,15 @@ async def list_images(
                 image_tag=group["image_tag"],
                 image_digest=group["image_digest"],
                 container_count=len(group["container_ids"]),
-                agents=[AgentRef(id=aid, name=aname) for aid, aname in group["agents"].items()],
+                agents=[
+                    AgentRef(
+                        id=aid,
+                        name=info["name"],
+                        container_id=info["container_id"],
+                        patching_available=info["patching_available"],
+                    )
+                    for aid, info in group["agents"].items()
+                ],
                 total_cves=stats["total"],
                 fixable_cves=stats["fixable"],
                 severity_breakdown=SeverityBreakdown(

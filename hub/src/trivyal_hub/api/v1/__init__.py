@@ -10,6 +10,7 @@ from trivyal_hub.api.v1.hub import router as hub_router
 from trivyal_hub.api.v1.images import router as images_router
 from trivyal_hub.api.v1.insights import router as insights_router
 from trivyal_hub.api.v1.misconfigurations import router as misconfigs_router
+from trivyal_hub.api.v1.patches import router as patches_router
 from trivyal_hub.api.v1.scans import router as scans_router
 
 router = APIRouter(prefix="/api/v1")
@@ -22,3 +23,4 @@ router.include_router(misconfigs_router)
 router.include_router(images_router)
 router.include_router(dashboard_router)
 router.include_router(insights_router)
+router.include_router(patches_router)

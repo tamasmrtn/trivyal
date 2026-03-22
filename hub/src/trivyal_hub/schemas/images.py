@@ -16,6 +16,8 @@ class SeverityBreakdown(BaseModel):
 class AgentRef(BaseModel):
     id: str
     name: str
+    container_id: str
+    patching_available: bool = False
 
 
 class ImageResponse(BaseModel):
