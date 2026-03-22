@@ -11,6 +11,7 @@ from sqlmodel import select
 from trivyal_hub.core.aggregator import process_scan_result
 from trivyal_hub.core.auth import sign_challenge, verify_token
 from trivyal_hub.core.misconfig_aggregator import process_misconfig_result
+from trivyal_hub.core.patch_coordinator import handle_patch_log, handle_patch_result, handle_restart_result
 from trivyal_hub.db.models import Agent, AgentStatus, _now
 from trivyal_hub.db.session import get_hub_settings
 
@@ -75,6 +76,30 @@ class ConnectionManager:
             self.disconnect(agent_id, ws)
             return False
 
+    async def send_patch_trigger(self, agent_id: str, payload: dict) -> bool:
+        ws = self.active.get(agent_id)
+        if not ws:
+            return False
+        try:
+            await ws.send_json(payload)
+            return True
+        except Exception:
+            logger.exception("Failed to send patch trigger to agent %s", agent_id)
+            self.disconnect(agent_id, ws)
+            return False
+
+    async def send_restart_trigger(self, agent_id: str, payload: dict) -> bool:
+        ws = self.active.get(agent_id)
+        if not ws:
+            return False
+        try:
+            await ws.send_json(payload)
+            return True
+        except Exception:
+            logger.exception("Failed to send restart trigger to agent %s", agent_id)
+            self.disconnect(agent_id, ws)
+            return False
+
     async def handle_connection(self, ws: WebSocket, session: AsyncSession):
         """Full lifecycle of an agent WebSocket connection."""
         await ws.accept()
@@ -130,9 +155,33 @@ class ConnectionManager:
                 elif msg_type == "misconfig_result":
                     misconfig_data = data.get("data", {})
                     await process_misconfig_result(session, agent.id, misconfig_data)
+                    await session.refresh(agent)
+                    agent.status = AgentStatus.ONLINE
                     agent.last_seen = _now()
                     session.add(agent)
                     await session.commit()
+
+                elif msg_type == "patch_log":
+                    await handle_patch_log(session, data["request_id"], data["line"])
+
+                elif msg_type == "patch_result":
+                    await handle_patch_result(
+                        session,
+                        data["request_id"],
+                        data["status"],
+                        data.get("patched_tag"),
+                        data.get("error"),
+                    )
+
+                elif msg_type == "restart_result":
+                    await handle_restart_result(
+                        session,
+                        data["request_id"],
+                        data["status"],
+                        data.get("new_container_id"),
+                        data.get("error"),
+                        data.get("reason"),
+                    )
 
                 elif msg_type == "heartbeat":
                     agent.last_seen = _now()

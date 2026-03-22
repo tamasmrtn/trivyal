@@ -7,6 +7,10 @@ from trivyal_hub.db.models import (
     Container,
     Finding,
     FindingStatus,
+    PatchRequest,
+    PatchStatus,
+    RestartRequest,
+    RestartStatus,
     ScanResult,
     Severity,
     _now,
@@ -135,6 +139,26 @@ async def process_scan_result(
             active.status = FindingStatus.FIXED
             active.last_seen = now
             session.add(active)
+
+    # Revert detection: if the container had a completed restart with a patched
+    # image, but the current scan shows the image no longer matches the patched
+    # tag, mark the restart as reverted.
+    restart_q = (
+        select(RestartRequest, PatchRequest.patched_tag)
+        .join(PatchRequest, RestartRequest.patch_request_id == PatchRequest.id)
+        .where(
+            RestartRequest.container_id == container.id,
+            RestartRequest.status == RestartStatus.COMPLETED,
+            RestartRequest.reverted_at.is_(None),
+            PatchRequest.status == PatchStatus.COMPLETED,
+            PatchRequest.patched_tag.isnot(None),
+        )
+    )
+    for rr, patched_tag in (await session.execute(restart_q)).all():
+        # Compare the full artifact name against the patched tag
+        if raw_image_name != patched_tag:
+            rr.reverted_at = now
+            session.add(rr)
 
     await session.commit()
     await session.refresh(scan_result)
