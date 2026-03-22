@@ -112,6 +112,44 @@ class TestListImages:
         resp = await client.get("/api/v1/images?page_size=2&page=3", headers=auth_header)
         assert len(resp.json()["data"]) == 1
 
+    async def test_groups_by_image_name_and_tag(self, client, auth_header, session):
+        """Different tags of the same image should appear as separate rows."""
+        create_resp = await client.post("/api/v1/agents", json={"name": "s1"}, headers=auth_header)
+        agent_id = create_resp.json()["id"]
+        await _seed_image_with_findings(session, agent_id, image_name="postgres", image_tag="14", fixable=True)
+        await _seed_image_with_findings(session, agent_id, image_name="postgres", image_tag="15", fixable=True)
+        await _seed_image_with_findings(session, agent_id, image_name="postgres", image_tag="16", fixable=False)
+
+        resp = await client.get("/api/v1/images", headers=auth_header)
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert len(data) == 3
+
+        tags = {item["image_tag"] for item in data}
+        assert tags == {"14", "15", "16"}
+
+        # Each row should have its own CVE counts (not aggregated across tags)
+        for item in data:
+            assert item["image_name"] == "postgres"
+            assert item["total_cves"] == 3
+            assert item["container_count"] == 1
+
+    async def test_same_image_tag_across_agents(self, client, auth_header, session):
+        """Same image:tag on multiple agents should be one row with both agents listed."""
+        resp1 = await client.post("/api/v1/agents", json={"name": "server1"}, headers=auth_header)
+        resp2 = await client.post("/api/v1/agents", json={"name": "server2"}, headers=auth_header)
+        agent1 = resp1.json()["id"]
+        agent2 = resp2.json()["id"]
+        await _seed_image_with_findings(session, agent1, image_name="redis", image_tag="7")
+        await _seed_image_with_findings(session, agent2, image_name="redis", image_tag="7")
+
+        resp = await client.get("/api/v1/images", headers=auth_header)
+        data = resp.json()["data"]
+        assert len(data) == 1
+        assert data[0]["container_count"] == 2
+        agent_names = {a["name"] for a in data[0]["agents"]}
+        assert agent_names == {"server1", "server2"}
+
     async def test_includes_agent_info(self, client, auth_header, session):
         create_resp = await client.post("/api/v1/agents", json={"name": "server1"}, headers=auth_header)
         agent_id = create_resp.json()["id"]

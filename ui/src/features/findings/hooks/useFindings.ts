@@ -10,6 +10,7 @@ interface UseFindingsOptions {
   package?: string;
   container_id?: string;
   image_name?: string;
+  image_tag?: string;
   fixable?: boolean;
   sort_by?: string;
   sort_dir?: "asc" | "desc";
@@ -53,6 +54,7 @@ export function useFindings(options?: UseFindingsOptions) {
   const pkg = options?.package;
   const containerId = options?.container_id;
   const imageName = options?.image_name;
+  const imageTag = options?.image_tag;
   const fixable = options?.fixable;
   const sortBy = options?.sort_by;
   const sortDir = options?.sort_dir;
@@ -78,6 +80,7 @@ export function useFindings(options?: UseFindingsOptions) {
       package: pkg,
       container_id: containerId,
       image_name: imageName,
+      image_tag: imageTag,
       fixable,
       sort_by: sortBy,
       sort_dir: sortDir,
@@ -110,6 +113,7 @@ export function useFindings(options?: UseFindingsOptions) {
     pkg,
     containerId,
     imageName,
+    imageTag,
     fixable,
     sortBy,
     sortDir,

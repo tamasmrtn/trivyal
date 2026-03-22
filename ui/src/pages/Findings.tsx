@@ -21,12 +21,14 @@ export function Findings() {
 
   const [fixable, toggleFixable] = useFixable();
   const imageName = searchParams.get("image_name") ?? undefined;
+  const imageTag = searchParams.get("image_tag") ?? undefined;
 
   const { data, total, loading, error, refetch } = useFindings({
     severity,
     status,
     agent_id: agentId,
     image_name: imageName,
+    image_tag: imageTag,
     fixable: fixable || undefined,
     page,
     page_size: 50,
@@ -116,6 +118,9 @@ export function Findings() {
           {imageName && (
             <span className="bg-muted rounded-md px-2 py-1 text-sm">
               {imageName}
+              {imageTag && (
+                <span className="text-muted-foreground">:{imageTag}</span>
+              )}
             </span>
           )}
         </div>

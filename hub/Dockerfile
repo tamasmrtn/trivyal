@@ -18,7 +18,7 @@ RUN npm run build
 FROM python:3.14-alpine AS python-builder
 
 # uv is a build tool — it belongs here, not in the runtime image
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.10.12-python3.14-trixie-slim /usr/local/bin/uv /usr/local/bin/uv
 
 WORKDIR /app
 

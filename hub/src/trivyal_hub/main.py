@@ -6,8 +6,10 @@ import logging
 from contextlib import asynccontextmanager, suppress
 
 from fastapi import Depends, FastAPI, WebSocket
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import Response
+from starlette.staticfiles import StaticFiles
+from starlette.types import Scope
 
 from trivyal_hub.api.v1 import router as v1_router
 from trivyal_hub.config import settings
@@ -61,7 +63,17 @@ async def ws_agent(ws: WebSocket, session: AsyncSession = Depends(get_session)):
     await manager.handle_connection(ws, session)
 
 
+class SPAStaticFiles(StaticFiles):
+    """Serve index.html for any path that doesn't match a real static file."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        try:
+            return await super().get_response(path, scope)
+        except Exception:
+            return await super().get_response("index.html", scope)
+
+
 # Serve the React SPA — mounted last so API routes take precedence.
 # Only active when the built UI is present (i.e. in Docker); skipped in dev.
 if settings.static_dir.is_dir():
-    app.mount("/", StaticFiles(directory=settings.static_dir, html=True), name="ui")
+    app.mount("/", SPAStaticFiles(directory=settings.static_dir, html=True), name="ui")

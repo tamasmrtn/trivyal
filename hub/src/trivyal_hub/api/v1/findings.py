@@ -66,6 +66,7 @@ async def list_findings(
     cve_id: str | None = None,
     package: str | None = None,
     image_name: str | None = None,
+    image_tag: str | None = None,
     fixable: bool | None = None,
     sort_by: str = Query(
         "first_seen",
@@ -109,6 +110,9 @@ async def list_findings(
     if image_name:
         query = query.where(Container.image_name == image_name)
         count_q = count_q.where(Container.image_name == image_name)
+    if image_tag:
+        query = query.where(Container.image_tag == image_tag)
+        count_q = count_q.where(Container.image_tag == image_tag)
     if fixable:
         fixable_cond = Finding.fixed_version.isnot(None) & (Finding.fixed_version != "")
         query = query.where(fixable_cond)
