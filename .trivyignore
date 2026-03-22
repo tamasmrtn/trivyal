@@ -2,3 +2,24 @@
 # This is a Windows-only vulnerability (named pipe path traversal).
 # Not applicable to Linux containers.
 CVE-2025-15558
+
+# CVE-2026-33186 — CRITICAL severity in google.golang.org/grpc embedded in the Trivy binary.
+# gRPC-Go authorization bypass via missing leading slash in :path pseudo-header.
+# Trivy runs as a local CLI scanner and does not expose a gRPC endpoint. Not exploitable.
+# Fixed in gRPC-Go v1.79.3; Trivy v0.69.3 ships v1.78.0. Awaiting upstream release.
+CVE-2026-33186
+
+# CVE-2026-25679 — HIGH severity in Go stdlib net/url embedded in the Trivy binary.
+# Incorrect parsing of IPv6 host literals. Trivy only connects to known DB mirrors.
+# Fixed in Go v1.25.8 / v1.26.1; Trivy v0.69.3 is built with Go v1.25.7. Awaiting upstream release.
+CVE-2026-25679
+
+# CVE-2026-27142 — MEDIUM severity in Go stdlib html/template embedded in the Trivy binary.
+# XSS via unescaped URLs in meta content attributes. Trivy does not render HTML templates.
+# Fixed in Go v1.25.8 / v1.26.1; Trivy v0.69.3 is built with Go v1.25.7. Awaiting upstream release.
+CVE-2026-27142
+
+# CVE-2026-27139 — LOW severity in Go stdlib os embedded in the Trivy binary.
+# FileInfo can escape from a Root via race condition. Trivy does not use os.Root.
+# Fixed in Go v1.25.8 / v1.26.1; Trivy v0.69.3 is built with Go v1.25.7. Awaiting upstream release.
+CVE-2026-27139
