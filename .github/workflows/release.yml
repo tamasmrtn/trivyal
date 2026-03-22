@@ -152,6 +152,30 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
+      # --- Copa: patch OS-level vulnerabilities (amd64) ---
+
+      - name: Scan for patchable OS vulnerabilities
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          format: json
+          output: copa-report.json
+          vuln-type: os
+          ignore-unfixed: true
+
+      - name: Patch with Copa
+        id: copa
+        uses: project-copacetic/copa-action@v1
+        with:
+          image: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          image-report: copa-report.json
+          patched-tag: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+        continue-on-error: true
+
+      - name: Push patched image
+        if: steps.copa.outcome == 'success'
+        run: docker push "${{ fromJSON(steps.meta.outputs.json).tags[0] }}"
+
   github-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
