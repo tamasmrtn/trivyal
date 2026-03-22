@@ -54,6 +54,21 @@ class Severity(StrEnum):
     UNKNOWN = "UNKNOWN"
 
 
+class PatchStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class RestartStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    BLOCKED = "blocked"
+
+
 # ── Tables ───────────────────────────────────────────────────────────────────
 
 
@@ -172,3 +187,40 @@ class RiskAcceptance(SQLModel, table=True):
 
     finding: Finding | None = Relationship(back_populates="acceptances")
     misconfig_finding: MisconfigFinding | None = Relationship(back_populates="acceptances")
+
+
+class PatchRequest(SQLModel, table=True):
+    id: str = Field(default_factory=_new_id, primary_key=True)
+    agent_id: str = Field(foreign_key="agent.id", index=True)
+    container_id: str = Field(foreign_key="container.id", index=True)
+    image_name: str
+    patched_tag: str | None = None
+    status: PatchStatus = Field(default=PatchStatus.PENDING)
+    original_finding_count: int | None = None
+    patched_finding_count: int | None = None
+    log_lines: list[str] | None = Field(default=None, sa_column=Column(JSON))
+    error_message: str | None = None
+    requested_at: datetime = Field(default_factory=_now)
+    completed_at: datetime | None = None
+
+    agent: Agent = Relationship()
+    container: Container = Relationship()
+    restarts: list[RestartRequest] = Relationship(
+        back_populates="patch_request",
+        cascade_delete=True,
+    )
+
+
+class RestartRequest(SQLModel, table=True):
+    id: str = Field(default_factory=_new_id, primary_key=True)
+    patch_request_id: str = Field(foreign_key="patchrequest.id", index=True)
+    container_id: str = Field(foreign_key="container.id", index=True)
+    status: RestartStatus = Field(default=RestartStatus.PENDING)
+    block_reason: str | None = None
+    error_message: str | None = None
+    requested_at: datetime = Field(default_factory=_now)
+    completed_at: datetime | None = None
+    reverted_at: datetime | None = None
+
+    patch_request: PatchRequest = Relationship(back_populates="restarts")
+    container: Container = Relationship()
