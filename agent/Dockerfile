@@ -1,7 +1,7 @@
 # agent/Dockerfile
 
 # ── Stage 1: Extract Trivy binary ────────────────────────────────────────────
-FROM aquasec/trivy:0.69.3 AS trivy-source
+FROM aquasec/trivy:0.69.6 AS trivy-source
 # Nothing to run — we only need the binary at /usr/local/bin/trivy
 
 
