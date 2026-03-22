@@ -33,6 +33,7 @@ export function fetchFindings(params?: {
   package?: string;
   container_id?: string;
   image_name?: string;
+  image_tag?: string;
   fixable?: boolean;
   sort_by?: string;
   sort_dir?: "asc" | "desc";
@@ -47,6 +48,7 @@ export function fetchFindings(params?: {
   if (params?.package) search.set("package", params.package);
   if (params?.container_id) search.set("container_id", params.container_id);
   if (params?.image_name) search.set("image_name", params.image_name);
+  if (params?.image_tag) search.set("image_tag", params.image_tag);
   if (params?.fixable) search.set("fixable", "true");
   if (params?.sort_by) search.set("sort_by", params.sort_by);
   if (params?.sort_dir) search.set("sort_dir", params.sort_dir);

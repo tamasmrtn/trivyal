@@ -19,7 +19,7 @@ async def list_images(
     fixable: bool | None = None,
     sort_by: str = Query(
         "fixable_cves",
-        pattern="^(fixable_cves|total_cves|image_name|last_scanned)$",
+        pattern="^(fixable_cves|total_cves|image_name|image_tag|last_scanned)$",
     ),
     sort_dir: str = Query("desc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
@@ -32,10 +32,10 @@ async def list_images(
         container_q = container_q.where(Container.agent_id == agent_id)
     container_rows = (await session.execute(container_q)).all()
 
-    # Group containers by image_name
-    image_groups: dict[str, dict] = {}
+    # Group containers by (image_name, image_tag) so different versions get separate rows
+    image_groups: dict[tuple[str, str | None], dict] = {}
     for container, aid, aname in container_rows:
-        key = container.image_name
+        key = (container.image_name, container.image_tag)
         if key not in image_groups:
             image_groups[key] = {
                 "image_name": container.image_name,
@@ -50,8 +50,6 @@ async def list_images(
         group["agents"][aid] = aname
         if container.last_scanned and (group["last_scanned"] is None or container.last_scanned > group["last_scanned"]):
             group["last_scanned"] = container.last_scanned
-        if container.image_tag:
-            group["image_tag"] = container.image_tag
         if container.image_digest:
             group["image_digest"] = container.image_digest
 
@@ -73,23 +71,23 @@ async def list_images(
         findings_q = findings_q.where(ScanResult.container_id.in_(all_container_ids))
     finding_rows = (await session.execute(findings_q)).all()
 
-    # Aggregate findings per image
-    container_to_image: dict[str, str] = {}
+    # Aggregate findings per image+tag
+    container_to_key: dict[str, tuple[str, str | None]] = {}
     for group in image_groups.values():
         for cid in group["container_ids"]:
-            container_to_image[cid] = group["image_name"]
+            container_to_key[cid] = (group["image_name"], group["image_tag"])
 
-    image_findings: dict[str, dict] = {}
+    image_findings: dict[tuple[str, str | None], dict] = {}
     for cid, sev, fixed_version in finding_rows:
-        img = container_to_image.get(cid)
-        if not img:
+        img_key = container_to_key.get(cid)
+        if not img_key:
             continue
-        if img not in image_findings:
-            image_findings[img] = {"total": 0, "fixable": 0, "severity": {s: 0 for s in Severity}}
-        image_findings[img]["total"] += 1
-        image_findings[img]["severity"][sev] += 1
+        if img_key not in image_findings:
+            image_findings[img_key] = {"total": 0, "fixable": 0, "severity": {s: 0 for s in Severity}}
+        image_findings[img_key]["total"] += 1
+        image_findings[img_key]["severity"][sev] += 1
         if fixed_version:
-            image_findings[img]["fixable"] += 1
+            image_findings[img_key]["fixable"] += 1
 
     # Build response
     results: list[ImageResponse] = []
@@ -125,6 +123,7 @@ async def list_images(
         "fixable_cves": lambda x: x.fixable_cves,
         "total_cves": lambda x: x.total_cves,
         "image_name": lambda x: x.image_name,
+        "image_tag": lambda x: x.image_tag or "",
         "last_scanned": lambda x: x.last_scanned or "",
     }
     sort_fn = sort_keys.get(sort_by, sort_keys["fixable_cves"])

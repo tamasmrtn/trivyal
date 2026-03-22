@@ -97,6 +97,9 @@ export function UpdateWhenYouCanSection() {
                 <TableHead className="text-muted-foreground text-xs tracking-wide uppercase">
                   Tag
                 </TableHead>
+                <TableHead className="text-muted-foreground hidden text-xs tracking-wide uppercase md:table-cell">
+                  Agents
+                </TableHead>
                 <TableHead className="text-muted-foreground text-xs tracking-wide uppercase">
                   Fixable CVEs
                 </TableHead>
@@ -111,12 +114,16 @@ export function UpdateWhenYouCanSection() {
             <TableBody>
               {data.map((image) => (
                 <TableRow
-                  key={image.image_name}
-                  onClick={() =>
-                    navigate(
-                      `/findings?image_name=${encodeURIComponent(image.image_name)}&fixable=true`,
-                    )
-                  }
+                  key={`${image.image_name}:${image.image_tag ?? ""}`}
+                  onClick={() => {
+                    const params = new URLSearchParams({
+                      image_name: image.image_name,
+                      fixable: "true",
+                    });
+                    if (image.image_tag)
+                      params.set("image_tag", image.image_tag);
+                    navigate(`/findings?${params.toString()}`);
+                  }}
                   className="hover:bg-accent/50 cursor-pointer"
                 >
                   <TableCell
@@ -127,6 +134,9 @@ export function UpdateWhenYouCanSection() {
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     {image.image_tag ?? "—"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground hidden text-xs md:table-cell">
+                    {image.agents.map((a) => a.name).join(", ")}
                   </TableCell>
                   <TableCell className="text-primary text-sm font-medium">
                     {image.fixable_cves}
