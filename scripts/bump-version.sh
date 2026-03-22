@@ -11,9 +11,10 @@ echo "Bumping $OLD_VERSION → $NEW_VERSION"
 # Python services
 sed -i "s/^version = \"$OLD_VERSION\"/version = \"$NEW_VERSION\"/" hub/pyproject.toml
 sed -i "s/^version = \"$OLD_VERSION\"/version = \"$NEW_VERSION\"/" agent/pyproject.toml
+sed -i "s/^version = \"$OLD_VERSION\"/version = \"$NEW_VERSION\"/" patcher/pyproject.toml
 sed -i "s/^version = \"$OLD_VERSION\"/version = \"$NEW_VERSION\"/" integration/pyproject.toml
 
 # UI
 cd ui && npm version "$NEW_VERSION" --no-git-tag-version && cd ..
 
-echo "Done. Verify with: grep -r '$NEW_VERSION' hub/pyproject.toml agent/pyproject.toml ui/package.json integration/pyproject.toml"
+echo "Done. Verify with: grep -r '$NEW_VERSION' hub/pyproject.toml agent/pyproject.toml patcher/pyproject.toml ui/package.json integration/pyproject.toml"

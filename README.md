@@ -2,9 +2,9 @@
   <img src="docs/trivyal-logo-no-bg.png" alt="Trivyal" width="280" />
 </p>
 
-<p align="center">A lightweight, self-hosted container vulnerability scanner with a hub-agent model, powered by <a href="https://github.com/aquasecurity/trivy">Trivy</a>.</p>
+<p align="center">A lightweight, self-hosted container vulnerability scanner <strong>and patcher</strong> with a hub-agent model, powered by <a href="https://github.com/aquasecurity/trivy">Trivy</a> and <a href="https://github.com/project-copacetic/copacetic">Copa</a>.</p>
 
-Trivyal is designed for homelabs and small multi-server Docker environments. A lightweight agent runs on each host, scans local containers with Trivy, and ships results to a central hub that aggregates and displays everything in a single UI.
+Trivyal is designed for homelabs and small multi-server Docker environments. A lightweight agent runs on each host, scans local containers with Trivy, and ships results to a central hub that aggregates and displays everything in a single UI. Found a fixable CVE? **Patch it in-place** with one click — no rebuild, no registry, no CI pipeline required.
 
 ---
 
@@ -14,7 +14,7 @@ Trivyal is designed for homelabs and small multi-server Docker environments. A l
 
 **[DefectDojo](https://www.defectdojo.org/)** is a full DevSecOps vulnerability management platform. It ingests findings from many scanners (including Trivy), deduplicates them, tracks remediation, generates reports, and integrates with issue trackers and CI pipelines. Use it when you need a centralised security programme across multiple teams, products, and scanner types — it is a significant operational investment to run.
 
-**Use Trivyal instead when** you run a homelab or a small multi-server Docker environment and want a single lightweight tool that tells you what vulnerabilities are running on your hosts right now — no registry, no pipeline, no dedicated security team required. Trivyal focuses on one thing: discovering what is actually running via the Docker socket, scanning it with Trivy, and surfacing new findings to you.
+**Use Trivyal instead when** you run a homelab or a small multi-server Docker environment and want a single lightweight tool that tells you what vulnerabilities are running on your hosts right now — and lets you fix them. No registry, no pipeline, no dedicated security team required. Trivyal discovers what is actually running via the Docker socket, scans it with Trivy, surfaces findings to you, and can **patch OS-level vulnerabilities in-place** using Copa — all from the UI.
 
 ---
 
@@ -25,10 +25,13 @@ Trivyal is designed for homelabs and small multi-server Docker environments. A l
 - **Priorities page** — unified action signal split into two sections:
   - *Fix Today* — Docker configuration issues (privileged containers, host network, missing resource limits, etc.) with severity and status filters
   - *Update When You Can* — image-centric CVE view grouped by image, showing fixable CVE counts and per-severity breakdowns
+  - **One-click patching** — "Patch" button on each image with fixable CVEs, streams Copa output live in a terminal dialog
+- **Patches page** — history of all patch and restart operations with status tracking
 - Aggregated vulnerability view across all hosts — filterable by severity, status, and fixable CVEs
 - Per-host and per-container drill-down
 - Finding timeline — tracks when CVEs appeared and when they were resolved
 - Auto-marks vulnerability findings as **FIXED** when absent from a subsequent scan
+- **Revert detection** — if a patched container is replaced with the original image, Trivyal detects the rollback and marks the restart as reverted
 - Diff view between scans — highlights new and fixed findings
 - Risk acceptance — mark a finding as accepted with a reason and expiry date; automatically re-activates when the acceptance expires
 - False positive flagging per finding
@@ -43,10 +46,18 @@ Trivyal is designed for homelabs and small multi-server Docker environments. A l
 - **Digest-based scan skipping** — unchanged images are skipped entirely; forced rescan after a configurable number of days regardless
 - **Docker configuration scanning** — inspects each container via the Docker API and flags misconfigurations (privileged mode, host network/PID/IPC, missing read-only root filesystem, missing resource limits, sensitive volume mounts)
 - On-demand scan trigger from hub
+- **Patcher sidecar integration** — forwards patch and restart commands between hub and the Copa patcher sidecar
 - Ships results to hub via authenticated WebSocket connection
 - Caches last scan results locally for resilience if hub is temporarily unreachable
 - Self-reports host metadata (hostname, Docker version, OS, agent version)
 - Lightweight — runs as a single Docker container, mounts Docker socket read-only
+
+### Patcher Sidecar
+- **In-place image patching** using [Copa](https://github.com/project-copacetic/copacetic) — patches OS-level packages with upstream fixes without rebuilding the image
+- **Container restart** — stops the old container, recreates it with the patched image, preserving the original configuration (ports, volumes, env vars, labels)
+- **Anonymous volume detection** — blocks restart if the container has anonymous volumes that would be lost
+- Streams Copa build logs back to the hub in real time via NDJSON
+- Runs as a sidecar alongside the agent — only needs Docker socket write access + the Copa binary
 
 ---
 
@@ -66,16 +77,17 @@ Trivyal uses a hub-agent model. The hub is the central server that aggregates sc
 │  ┌──────────▼──────────────┐    │       │  │  - Trivy runner           │   │
 │  │      FastAPI Hub        │    │       │  │  - Result cache           │   │
 │  │      (Python)           │◄───┼───────┼──│  - WebSocket client       │   │
-│  │                         │    │  WSS  │  └───────────┬───────────────┘   │
-│  │  - Agent manager        │    │       │              │                   │
-│  │  - Scan aggregator      │    │       │   /var/run/docker.sock (ro)      │
-│  │  - Auth / token mgmt    │    │       └──────────────────────────────────┘
-│  └──────────┬──────────────┘    │
-│             │                   │
-│  ┌──────────▼──────────────┐    │
-│  │       SQLite DB         │    │
-│  └─────────────────────────┘    │
-└─────────────────────────────────┘
+│  │                         │    │  WSS  │  │  - Sidecar proxy          │   │
+│  │  - Agent manager        │    │       │  └───────────┬───────────┬───┘   │
+│  │  - Scan aggregator      │    │       │              │           │ HTTP  │
+│  │  - Patch coordinator    │    │       │              │   ┌───────▼─────┐ │
+│  │  - Auth / token mgmt    │    │       │              │   │   Patcher   │ │
+│  └──────────┬──────────────┘    │       │              │   │  (Copa +    │ │
+│             │                   │       │              │   │   Docker)   │ │
+│  ┌──────────▼──────────────┐    │       │              │   └──────┬──────┘ │
+│  │       SQLite DB         │    │       │              │          │        │
+│  └─────────────────────────┘    │       │   /var/run/docker.sock (ro + rw) │
+└─────────────────────────────────┘       └──────────────────────────────────┘
 ```
 
 ### Tech Stack
@@ -86,10 +98,12 @@ Trivyal uses a hub-agent model. The hub is the central server that aggregates sc
 | Hub database | SQLite via SQLModel + Alembic |
 | Hub frontend | React + shadcn/ui + Tailwind CSS |
 | Agent | Python 3.14 |
+| Patcher sidecar | Python 3.14 + aiohttp + Copa |
 | Package management | uv |
 | Scanner | Trivy (CLI, invoked by agent) |
+| Patcher | Copa (CLI, invoked by patcher sidecar) |
 | Auth | Ed25519 keypair + token (PyNaCl) |
-| Communication | WebSocket (persistent, allows hub-initiated scan triggers) |
+| Communication | WebSocket (persistent, allows hub-initiated scan triggers + patch commands) |
 | Containerisation | Docker Compose |
 
 ### Registration Flow
@@ -181,6 +195,15 @@ All variables use the `TRIVYAL_` prefix and are read from the environment or a `
 | `TRIVYAL_DATA_DIR` | no | `/app/data` | Directory for the local scan result cache. |
 | `TRIVYAL_HEARTBEAT_INTERVAL` | no | `30` | Seconds between heartbeat messages sent to the hub. |
 | `TRIVYAL_RECONNECT_DELAY` | no | `10` | Seconds to wait before reconnecting after a dropped connection. |
+| `TRIVYAL_PATCH_SIDECAR_URL` | no | — | URL of the patcher sidecar (e.g. `http://trivyal-patcher:8101`). Enables patching when set. |
+
+### Patcher Sidecar
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `TRIVYAL_PATCHER_PORT` | no | `8101` | Port for the patcher HTTP server. |
+| `TRIVYAL_PATCHER_DOCKER_SOCKET` | no | `/var/run/docker.sock` | Path to the Docker socket. |
+| `TRIVYAL_PATCHER_COPA_BINARY` | no | `copa` | Path to the Copa binary. |
 
 ### Docker Compose
 
@@ -204,6 +227,7 @@ This repository uses [uv](https://docs.astral.sh/uv/) for Python dependency mana
 trivyal/
 ├── hub/      # Hub service (FastAPI) — uv project
 ├── agent/    # Agent service (Python) — uv project
+├── patcher/  # Copa patcher sidecar — uv project
 ├── ui/       # React frontend (Vite + TypeScript)
 └── docs/     # Architecture and guides
 ```
@@ -231,6 +255,7 @@ make dev-ui
 make test          # all services
 make test-hub
 make test-agent
+make test-patcher
 make test-ui
 ```
 
