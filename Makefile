@@ -1,20 +1,23 @@
 SHELL := /bin/bash
 
-.PHONY: init init-hub init-agent init-ui init-hooks init-integration \
-        test test-hub test-agent test-ui test-integration \
+.PHONY: init init-hub init-agent init-patcher init-ui init-hooks init-integration \
+        test test-hub test-agent test-patcher test-ui test-integration \
         dev-hub dev-agent dev-ui lint \
         up-hub up-agent down-hub down-agent \
         scan-hub scan-agent
 
 # ── Init ──────────────────────────────────────────────────────────────────────
 
-init: init-hub init-agent init-ui init-hooks init-integration
+init: init-hub init-agent init-patcher init-ui init-hooks init-integration
 
 init-hub:
 	cd hub && uv sync
 
 init-agent:
 	cd agent && uv sync
+
+init-patcher:
+	cd patcher && uv sync
 
 init-ui:
 	cd ui && npm install
@@ -33,13 +36,16 @@ lint:
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
-test: test-hub test-agent test-ui
+test: test-hub test-agent test-patcher test-ui
 
 test-hub:
 	cd hub && uv run pytest tests/ -vv
 
 test-agent:
 	cd agent && uv run pytest tests/ -vv
+
+test-patcher:
+	cd patcher && uv run pytest tests/ -vv
 
 test-ui:
 	cd ui && npm run test:run
