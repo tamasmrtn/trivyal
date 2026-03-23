@@ -34,6 +34,7 @@ async def _acceptance_expiry_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    settings.data_dir.mkdir(parents=True, exist_ok=True)
     await run_migrations()
     async with AsyncSession(engine, expire_on_commit=False) as session:
         await get_hub_settings(session)

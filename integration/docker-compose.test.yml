@@ -15,7 +15,7 @@ services:
       TRIVYAL_DATA_DIR: /tmp/trivyal-test
       TRIVYAL_ACCEPTANCE_EXPIRY_INTERVAL: "2"
     tmpfs:
-      - /tmp/trivyal-test    # ephemeral SQLite DB — wiped on every compose run
+      - /tmp/trivyal-test:mode=1777    # ephemeral SQLite DB — wiped on every compose run
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8099/api/health || exit 1"]
       interval: 5s

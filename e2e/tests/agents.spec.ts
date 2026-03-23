@@ -16,13 +16,14 @@ test.describe("Agents", () => {
   });
 
   test("registers a new agent", async ({ authedPage: page }) => {
+    const agentName = `e2e-agent-${Date.now()}`;
     await page.getByRole("link", { name: /agents/i }).click();
     await page.getByRole("button", { name: /add agent/i }).click();
-    await page.locator("#agent-name").fill("e2e-test-agent");
+    await page.locator("#agent-name").fill(agentName);
     await page.getByRole("button", { name: /register/i }).click();
 
     // After registration, dialog shows token and compose snippet
     await expect(page.getByText(/agent registered/i)).toBeVisible();
-    await expect(page.getByText(/token/i)).toBeVisible();
+    await expect(page.getByText("Token", { exact: true })).toBeVisible();
   });
 });
