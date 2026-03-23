@@ -58,6 +58,52 @@ class TestListFindings:
         response = await client.get("/api/v1/findings?severity=LOW", headers=auth_header)
         assert response.json()["total"] == 0
 
+    async def test_filter_by_status(self, client, auth_header, session):
+        create_resp = await client.post("/api/v1/agents", json={"name": "s1"}, headers=auth_header)
+        agent_id = create_resp.json()["id"]
+        await _seed_finding(session, agent_id)
+
+        response = await client.get("/api/v1/findings?status=active", headers=auth_header)
+        assert response.json()["total"] == 1
+
+        response = await client.get("/api/v1/findings?status=fixed", headers=auth_header)
+        assert response.json()["total"] == 0
+
+    async def test_filter_by_agent_id(self, client, auth_header, session):
+        resp1 = await client.post("/api/v1/agents", json={"name": "a1"}, headers=auth_header)
+        resp2 = await client.post("/api/v1/agents", json={"name": "a2"}, headers=auth_header)
+        agent1 = resp1.json()["id"]
+        agent2 = resp2.json()["id"]
+        await _seed_finding(session, agent1)
+
+        response = await client.get(f"/api/v1/findings?agent_id={agent1}", headers=auth_header)
+        assert response.json()["total"] == 1
+
+        response = await client.get(f"/api/v1/findings?agent_id={agent2}", headers=auth_header)
+        assert response.json()["total"] == 0
+
+    async def test_filter_by_cve_id(self, client, auth_header, session):
+        create_resp = await client.post("/api/v1/agents", json={"name": "s1"}, headers=auth_header)
+        agent_id = create_resp.json()["id"]
+        await _seed_finding(session, agent_id)
+
+        response = await client.get("/api/v1/findings?cve_id=CVE-2024-0001", headers=auth_header)
+        assert response.json()["total"] == 1
+
+        response = await client.get("/api/v1/findings?cve_id=CVE-9999-0000", headers=auth_header)
+        assert response.json()["total"] == 0
+
+    async def test_filter_by_package(self, client, auth_header, session):
+        create_resp = await client.post("/api/v1/agents", json={"name": "s1"}, headers=auth_header)
+        agent_id = create_resp.json()["id"]
+        await _seed_finding(session, agent_id)
+
+        response = await client.get("/api/v1/findings?package=openssl", headers=auth_header)
+        assert response.json()["total"] == 1
+
+        response = await client.get("/api/v1/findings?package=curl", headers=auth_header)
+        assert response.json()["total"] == 0
+
 
 class TestGetFinding:
     async def test_returns_404_for_unknown(self, client, auth_header):
@@ -66,6 +112,14 @@ class TestGetFinding:
 
 
 class TestUpdateFinding:
+    async def test_returns_404_for_unknown(self, client, auth_header):
+        response = await client.patch(
+            "/api/v1/findings/bad-id",
+            json={"status": "false_positive"},
+            headers=auth_header,
+        )
+        assert response.status_code == 404
+
     async def test_updates_status(self, client, auth_header, session):
         create_resp = await client.post("/api/v1/agents", json={"name": "s1"}, headers=auth_header)
         agent_id = create_resp.json()["id"]
@@ -118,6 +172,25 @@ class TestListAcceptances:
 
 
 class TestRiskAcceptance:
+    async def test_create_returns_404_for_unknown_finding(self, client, auth_header):
+        resp = await client.post(
+            "/api/v1/findings/bad-id/acceptances",
+            json={"reason": "test"},
+            headers=auth_header,
+        )
+        assert resp.status_code == 404
+
+    async def test_revoke_returns_404_for_unknown_acceptance(self, client, auth_header, session):
+        create_resp = await client.post("/api/v1/agents", json={"name": "s1"}, headers=auth_header)
+        agent_id = create_resp.json()["id"]
+        finding = await _seed_finding(session, agent_id)
+
+        resp = await client.delete(
+            f"/api/v1/findings/{finding.id}/acceptances/bad-id",
+            headers=auth_header,
+        )
+        assert resp.status_code == 404
+
     async def test_create_and_revoke(self, client, auth_header, session):
         create_resp = await client.post("/api/v1/agents", json={"name": "s1"}, headers=auth_header)
         agent_id = create_resp.json()["id"]
