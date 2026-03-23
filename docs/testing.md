@@ -4,7 +4,7 @@
 
 ## Python (hub & agent)
 
-**Stack:** `pytest` + `pytest-asyncio` + `httpx` (async test client for FastAPI)
+**Stack:** `pytest` + `pytest-asyncio` + `pytest-cov` + `httpx` (async test client for FastAPI)
 
 Run tests from the service directory:
 
@@ -29,6 +29,7 @@ testpaths = ["tests"]
 dev = [
     "pytest",
     "pytest-asyncio",
+    "pytest-cov",
     "httpx",
 ]
 ```
@@ -216,6 +217,20 @@ Keep test files short. If a test class grows beyond ~10 methods, split it into n
 
 ---
 
+## Coverage
+
+Coverage is enforced in CI and can be run locally:
+
+```bash
+make test-hub-cov    # pytest --cov, fails below 75%
+make test-agent-cov  # pytest --cov, fails below 75%
+make test-ui-cov     # vitest --coverage, thresholds in vite.config.ts
+```
+
+UI coverage thresholds are configured in `ui/vite.config.ts` under `test.coverage.thresholds`.
+
+---
+
 ## Integration tests
 
 Integration tests start the real hub in Docker and test every feature end-to-end, including the
@@ -279,3 +294,31 @@ Ed25519 challenge signature, sends fingerprint + host metadata). Tests can then 
 Each test uses a uniquely-named agent via `registered_agent`. Deleting the agent cascades through
 containers → scan_results → findings, so teardown is always clean. Tests that change settings
 reset them within the test body.
+
+---
+
+## E2E browser tests
+
+End-to-end tests use Playwright (chromium) and live in `e2e/`. They reuse the integration hub
+(`integration/docker-compose.test.yml`) and test critical UI flows through a real browser.
+
+```bash
+make test-e2e
+```
+
+Test files cover: login/auth, dashboard, findings page, and agents page (including the add-agent
+dialog). Tests log in via the UI form to exercise the full auth flow.
+
+---
+
+## Load & resilience tests
+
+Load tests live in `integration/tests/test_load.py` and are marked with `@pytest.mark.load`.
+They are excluded from regular CI (`-m "not load"`) and run via:
+
+```bash
+make test-load
+```
+
+Resilience tests (`integration/tests/test_resilience.py`) verify hub-restart recovery and
+agent offline detection. These run as part of the normal integration suite.
