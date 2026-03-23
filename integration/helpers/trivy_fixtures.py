@@ -184,6 +184,48 @@ SCAN_V1_PLUS_NEW: dict = {
 }
 
 
+def make_large_scan(n_containers: int) -> list[dict]:
+    """Generate realistic Trivy scan payloads for N containers.
+
+    Returns a list of scan payloads, each representing a different container
+    image with 2 vulnerabilities (1 CRITICAL, 1 HIGH).
+    """
+    scans = []
+    for i in range(n_containers):
+        scans.append(
+            {
+                "ArtifactName": f"app-{i}:latest",
+                "ArtifactType": "container_image",
+                "Results": [
+                    {
+                        "Target": f"app-{i}:latest (debian 12.8)",
+                        "Class": "os-pkgs",
+                        "Type": "debian",
+                        "Vulnerabilities": [
+                            {
+                                "VulnerabilityID": f"CVE-2024-{10000 + i * 2}",
+                                "PkgName": "openssl",
+                                "InstalledVersion": "3.0.11-1~deb12u2",
+                                "FixedVersion": "3.0.11-1~deb12u3",
+                                "Severity": "CRITICAL",
+                                "Title": f"Test vulnerability {i}-a",
+                            },
+                            {
+                                "VulnerabilityID": f"CVE-2024-{10001 + i * 2}",
+                                "PkgName": "libexpat1",
+                                "InstalledVersion": "2.5.0-1",
+                                "FixedVersion": "2.5.0-2",
+                                "Severity": "HIGH",
+                                "Title": f"Test vulnerability {i}-b",
+                            },
+                        ],
+                    }
+                ],
+            }
+        )
+    return scans
+
+
 # Clean misconfig scan for the same plex container — no findings.
 # Sending this after MISCONFIG_V1 causes the hub to mark PRIV_001 and NET_001 as fixed.
 MISCONFIG_CLEAN: dict = {
