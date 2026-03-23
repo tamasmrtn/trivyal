@@ -363,6 +363,10 @@ hub/data/
 hub/dev.db
 agent/data/
 
+# Playwright
+e2e/test-results/
+e2e/playwright-report/
+
 # claude
 .claude/
 .planning/

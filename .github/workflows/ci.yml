@@ -22,6 +22,34 @@ jobs:
           echo "hub=$(echo "$CHANGED" | grep -qE '^(hub|ui)/' && echo true || echo false)" >> $GITHUB_OUTPUT
           echo "agent=$(echo "$CHANGED" | grep -qE '^agent/' && echo true || echo false)" >> $GITHUB_OUTPUT
 
+  dep-scan:
+    name: Dependency vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/uv.lock"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: Audit hub Python deps
+        run: |
+          cd hub && uv export --no-dev --no-hashes --no-emit-project -o /tmp/hub-reqs.txt
+          uv tool run pip-audit -r /tmp/hub-reqs.txt --strict
+      - name: Audit agent Python deps
+        run: |
+          cd agent && uv export --no-dev --no-hashes --no-emit-project -o /tmp/agent-reqs.txt
+          uv tool run pip-audit -r /tmp/agent-reqs.txt --strict
+      - name: Audit UI npm deps
+        run: cd ui && npm ci && npm audit --audit-level=high
+
   lint:
     name: Lint (pre-commit)
     runs-on: ubuntu-latest
@@ -58,7 +86,7 @@ jobs:
           cache-dependency-glob: "hub/uv.lock"
       - run: uv sync
         working-directory: hub
-      - run: uv run pytest tests/ -vv
+      - run: uv run pytest tests/ -vv --cov=trivyal_hub --cov-report=term --cov-fail-under=75
         working-directory: hub
 
   test-agent:
@@ -73,7 +101,7 @@ jobs:
           cache-dependency-glob: "agent/uv.lock"
       - run: uv sync
         working-directory: agent
-      - run: uv run pytest tests/ -vv
+      - run: uv run pytest tests/ -vv --cov=trivyal_agent --cov-report=term --cov-fail-under=75
         working-directory: agent
 
   test-ui:
@@ -89,7 +117,7 @@ jobs:
           cache-dependency-path: ui/package-lock.json
       - run: npm ci
         working-directory: ui
-      - run: npm run test:run
+      - run: npm run test:coverage
         working-directory: ui
 
   test-integration:
@@ -108,11 +136,44 @@ jobs:
       - name: Run integration tests
         run: |
           docker compose -f docker-compose.test.yml up --build --wait -d
-          uv run pytest tests/ -v --tb=short
+          uv run pytest tests/ -v --tb=short -m "not load"
           EXIT=$?
           docker compose -f docker-compose.test.yml down -v
           exit $EXIT
         working-directory: integration
+
+  test-e2e:
+    name: E2E browser tests
+    runs-on: ubuntu-latest
+    needs: [changes, test-hub, test-agent, test-ui]
+    if: needs.changes.outputs.hub == 'true'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - run: npm ci
+        working-directory: e2e
+      - run: npx playwright install --with-deps chromium
+        working-directory: e2e
+      - name: Start hub
+        run: docker compose -f integration/docker-compose.test.yml up --build --wait -d
+      - name: Run E2E tests
+        run: npm test
+        working-directory: e2e
+        env:
+          E2E_BASE_URL: http://localhost:18099
+          E2E_ADMIN_PASSWORD: testpassword
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: e2e/test-results/
+      - name: Teardown
+        if: always()
+        run: docker compose -f integration/docker-compose.test.yml down -v
 
   scan-hub:
     name: Build and scan hub image (Trivy)

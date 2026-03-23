@@ -213,7 +213,7 @@ trivyal/
 make init
 ```
 
-This installs [pre-commit](https://pre-commit.com/) as a uv tool and sets up git hooks for linting (ruff), formatting, security scanning (bandit), and lockfile validation. To run all hooks manually:
+This installs [pre-commit](https://pre-commit.com/) as a uv tool and sets up git hooks for linting (ruff), formatting, security scanning (bandit, pip-audit, npm audit), and lockfile validation. To run all hooks manually:
 
 ```bash
 make lint
@@ -228,10 +228,13 @@ make dev-ui
 
 **Run tests:**
 ```bash
-make test          # all services
+make test              # all unit tests (hub + agent + ui)
 make test-hub
 make test-agent
 make test-ui
+make test-integration  # requires Docker
+make test-e2e          # E2E browser tests (requires Docker + Playwright)
+make test-load         # load tests (requires Docker, slow)
 ```
 
 ---

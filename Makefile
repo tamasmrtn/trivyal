@@ -2,6 +2,7 @@ SHELL := /bin/bash
 
 .PHONY: init init-hub init-agent init-ui init-hooks init-integration \
         test test-hub test-agent test-ui test-integration \
+        test-hub-cov test-agent-cov test-ui-cov test-e2e test-load \
         dev-hub dev-agent dev-ui lint \
         up-hub up-agent down-hub down-agent \
         scan-hub scan-agent
@@ -44,9 +45,33 @@ test-agent:
 test-ui:
 	cd ui && npm run test:run
 
+test-hub-cov:
+	cd hub && uv run pytest tests/ -vv --cov=trivyal_hub --cov-report=term --cov-fail-under=75
+
+test-agent-cov:
+	cd agent && uv run pytest tests/ -vv --cov=trivyal_agent --cov-report=term --cov-fail-under=75
+
+test-ui-cov:
+	cd ui && npm run test:coverage
+
 test-integration:
 	cd integration && docker compose -f docker-compose.test.yml up --build --wait -d
 	cd integration && uv run pytest tests/ -v --tb=short; \
+	  EXIT=$$?; \
+	  docker compose -f docker-compose.test.yml down -v; \
+	  exit $$EXIT
+
+test-e2e:
+	cd e2e && npm ci && npx playwright install --with-deps chromium
+	cd integration && docker compose -f docker-compose.test.yml up --build --wait -d
+	cd e2e && E2E_BASE_URL=http://localhost:18099 E2E_ADMIN_PASSWORD=testpassword npm test; \
+	  EXIT=$$?; \
+	  cd ../integration && docker compose -f docker-compose.test.yml down -v; \
+	  exit $$EXIT
+
+test-load:
+	cd integration && docker compose -f docker-compose.test.yml up --build --wait -d
+	cd integration && uv run pytest tests/ -v --tb=short -m "load"; \
 	  EXIT=$$?; \
 	  docker compose -f docker-compose.test.yml down -v; \
 	  exit $$EXIT

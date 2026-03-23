@@ -100,7 +100,10 @@ async def registered_agent(hub):
     body = resp.json()
     yield body
     # Cleanup — cascades containers → scan_results → findings
-    await hub.delete(f"/api/v1/agents/{body['id']}")
+    try:
+        await hub.delete(f"/api/v1/agents/{body['id']}")
+    except httpx.ConnectError:
+        pass  # hub may be unreachable (e.g. after resilience test restart)
 
 
 @pytest.fixture
