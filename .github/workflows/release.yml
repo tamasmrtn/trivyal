@@ -29,11 +29,11 @@ jobs:
           cache-dependency-path: ui/package-lock.json
       - name: Audit hub Python deps
         run: |
-          cd hub && uv export --no-dev --no-hashes -o /tmp/hub-reqs.txt
+          cd hub && uv export --no-dev --no-hashes --no-emit-project -o /tmp/hub-reqs.txt
           uv tool run pip-audit -r /tmp/hub-reqs.txt --strict
       - name: Audit agent Python deps
         run: |
-          cd agent && uv export --no-dev --no-hashes -o /tmp/agent-reqs.txt
+          cd agent && uv export --no-dev --no-hashes --no-emit-project -o /tmp/agent-reqs.txt
           uv tool run pip-audit -r /tmp/agent-reqs.txt --strict
       - name: Audit UI npm deps
         run: cd ui && npm ci && npm audit --audit-level=high
