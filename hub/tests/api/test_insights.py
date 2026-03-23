@@ -56,6 +56,28 @@ class TestInsightsSummary:
         assert body["critical_high"] == 2
         assert body["new_in_period"] == 3
 
+    async def test_summary_filtered_by_agent_id(self, client, auth_header, session):
+        reg = await client.post("/api/v1/agents", json={"name": "a-filter"}, headers=auth_header)
+        agent_id = reg.json()["id"]
+
+        container = Container(agent_id=agent_id, image_name="img:latest")
+        session.add(container)
+        await session.flush()
+        scan = ScanResult(container_id=container.id, agent_id=agent_id)
+        session.add(scan)
+        await session.flush()
+        session.add(_make_finding(scan.id, "CVE-2024-0099", Severity.HIGH))
+        await session.commit()
+
+        r = await client.get(f"/api/v1/insights/summary?agent_id={agent_id}", headers=auth_header)
+        assert r.status_code == 200
+        assert r.json()["active_findings"] == 1
+
+        # Different agent should have zero
+        reg2 = await client.post("/api/v1/agents", json={"name": "a-other"}, headers=auth_header)
+        r2 = await client.get(f"/api/v1/insights/summary?agent_id={reg2.json()['id']}", headers=auth_header)
+        assert r2.json()["active_findings"] == 0
+
     async def test_fix_rate(self, client, auth_header, session):
         reg = await client.post("/api/v1/agents", json={"name": "a2"}, headers=auth_header)
         agent_id = reg.json()["id"]
@@ -104,6 +126,24 @@ class TestInsightsTrend:
         today_entry = body["days"][-1]
         assert today_entry["critical"] == 1
 
+    async def test_trend_filtered_by_agent_id(self, client, auth_header, session):
+        reg = await client.post("/api/v1/agents", json={"name": "a-trend"}, headers=auth_header)
+        agent_id = reg.json()["id"]
+
+        container = Container(agent_id=agent_id, image_name="img:latest")
+        session.add(container)
+        await session.flush()
+        scan = ScanResult(container_id=container.id, agent_id=agent_id)
+        session.add(scan)
+        await session.flush()
+        session.add(_make_finding(scan.id, "CVE-2024-0050", Severity.CRITICAL))
+        await session.commit()
+
+        r = await client.get(f"/api/v1/insights/trend?window=7&agent_id={agent_id}", headers=auth_header)
+        assert r.status_code == 200
+        today = r.json()["days"][-1]
+        assert today["critical"] == 1
+
     async def test_scan_events_included(self, client, auth_header, session):
         reg = await client.post("/api/v1/agents", json={"name": "a4"}, headers=auth_header)
         agent_id = reg.json()["id"]
@@ -126,6 +166,23 @@ class TestInsightsAgentsTrend:
         body = r.json()
         assert body["agents"] == []
         assert body["scan_events"] == []
+
+    async def test_agents_trend_filtered_by_agent_id(self, client, auth_header, session):
+        reg = await client.post("/api/v1/agents", json={"name": "a-at"}, headers=auth_header)
+        agent_id = reg.json()["id"]
+
+        container = Container(agent_id=agent_id, image_name="img:latest")
+        session.add(container)
+        await session.flush()
+        scan = ScanResult(container_id=container.id, agent_id=agent_id)
+        session.add(scan)
+        await session.flush()
+        session.add(_make_finding(scan.id, "CVE-2024-0060", Severity.HIGH))
+        await session.commit()
+
+        r = await client.get(f"/api/v1/insights/agents/trend?window=7&agent_id={agent_id}", headers=auth_header)
+        assert r.status_code == 200
+        assert len(r.json()["agents"]) == 1
 
     async def test_agent_trend(self, client, auth_header, session):
         reg = await client.post("/api/v1/agents", json={"name": "a5"}, headers=auth_header)
@@ -153,6 +210,24 @@ class TestInsightsTopCves:
         r = await client.get("/api/v1/insights/top-cves", headers=auth_header)
         assert r.status_code == 200
         assert r.json() == []
+
+    async def test_top_cves_filtered_by_agent_id(self, client, auth_header, session):
+        reg = await client.post("/api/v1/agents", json={"name": "a-tc"}, headers=auth_header)
+        agent_id = reg.json()["id"]
+
+        c = Container(agent_id=agent_id, image_name="img:latest")
+        session.add(c)
+        await session.flush()
+        s = ScanResult(container_id=c.id, agent_id=agent_id)
+        session.add(s)
+        await session.flush()
+        session.add(_make_finding(s.id, "CVE-2024-0070", Severity.CRITICAL))
+        await session.commit()
+
+        r = await client.get(f"/api/v1/insights/top-cves?agent_id={agent_id}", headers=auth_header)
+        assert r.status_code == 200
+        assert len(r.json()) == 1
+        assert r.json()[0]["cve_id"] == "CVE-2024-0070"
 
     async def test_returns_top_cves(self, client, auth_header, session):
         reg = await client.post("/api/v1/agents", json={"name": "a6"}, headers=auth_header)

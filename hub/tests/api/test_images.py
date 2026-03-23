@@ -150,6 +150,18 @@ class TestListImages:
         agent_names = {a["name"] for a in data[0]["agents"]}
         assert agent_names == {"server1", "server2"}
 
+    async def test_filter_by_agent_id(self, client, auth_header, session):
+        resp1 = await client.post("/api/v1/agents", json={"name": "srv1"}, headers=auth_header)
+        resp2 = await client.post("/api/v1/agents", json={"name": "srv2"}, headers=auth_header)
+        agent1 = resp1.json()["id"]
+        agent2 = resp2.json()["id"]
+        await _seed_image_with_findings(session, agent1, image_name="nginx")
+        await _seed_image_with_findings(session, agent2, image_name="redis")
+
+        resp = await client.get(f"/api/v1/images?agent_id={agent1}", headers=auth_header)
+        assert resp.json()["total"] == 1
+        assert resp.json()["data"][0]["image_name"] == "nginx"
+
     async def test_includes_agent_info(self, client, auth_header, session):
         create_resp = await client.post("/api/v1/agents", json={"name": "server1"}, headers=auth_header)
         agent_id = create_resp.json()["id"]

@@ -96,6 +96,30 @@ class TestListMisconfigs:
         response = await client.get("/api/v1/misconfigs?status=fixed", headers=auth_header)
         assert response.json()["total"] == 0
 
+    async def test_filter_by_agent_id(self, client, auth_header, session):
+        resp1 = await client.post("/api/v1/agents", json={"name": "a1"}, headers=auth_header)
+        resp2 = await client.post("/api/v1/agents", json={"name": "a2"}, headers=auth_header)
+        agent1 = resp1.json()["id"]
+        agent2 = resp2.json()["id"]
+        await _seed_misconfig(session, agent1)
+
+        response = await client.get(f"/api/v1/misconfigs?agent_id={agent1}", headers=auth_header)
+        assert response.json()["total"] == 1
+
+        response = await client.get(f"/api/v1/misconfigs?agent_id={agent2}", headers=auth_header)
+        assert response.json()["total"] == 0
+
+    async def test_filter_by_container_id(self, client, auth_header, session):
+        create_resp = await client.post("/api/v1/agents", json={"name": "s1"}, headers=auth_header)
+        agent_id = create_resp.json()["id"]
+        finding = await _seed_misconfig(session, agent_id)
+
+        response = await client.get(f"/api/v1/misconfigs?container_id={finding.container_id}", headers=auth_header)
+        assert response.json()["total"] == 1
+
+        response = await client.get("/api/v1/misconfigs?container_id=bad-id", headers=auth_header)
+        assert response.json()["total"] == 0
+
     async def test_filter_by_check_id(self, client, auth_header, session):
         create_resp = await client.post("/api/v1/agents", json={"name": "s1"}, headers=auth_header)
         agent_id = create_resp.json()["id"]
@@ -177,6 +201,17 @@ class TestMisconfigAcceptance:
         resp = await client.post(
             "/api/v1/misconfigs/bad-id/acceptances",
             json={"reason": "test"},
+            headers=auth_header,
+        )
+        assert resp.status_code == 404
+
+    async def test_revoke_unknown_acceptance_returns_404(self, client, auth_header, session):
+        create_resp = await client.post("/api/v1/agents", json={"name": "s1"}, headers=auth_header)
+        agent_id = create_resp.json()["id"]
+        finding = await _seed_misconfig(session, agent_id)
+
+        resp = await client.delete(
+            f"/api/v1/misconfigs/{finding.id}/acceptances/bad-id",
             headers=auth_header,
         )
         assert resp.status_code == 404

@@ -46,10 +46,10 @@ test-ui:
 	cd ui && npm run test:run
 
 test-hub-cov:
-	cd hub && uv run pytest tests/ -vv --cov=trivyal_hub --cov-report=term --cov-fail-under=75
+	cd hub && uv run pytest tests/ -vv --cov=trivyal_hub --cov-report=term --cov-fail-under=80
 
 test-agent-cov:
-	cd agent && uv run pytest tests/ -vv --cov=trivyal_agent --cov-report=term --cov-fail-under=75
+	cd agent && uv run pytest tests/ -vv --cov=trivyal_agent --cov-report=term --cov-fail-under=80
 
 test-ui-cov:
 	cd ui && npm run test:coverage

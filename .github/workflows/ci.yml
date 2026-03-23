@@ -86,7 +86,7 @@ jobs:
           cache-dependency-glob: "hub/uv.lock"
       - run: uv sync
         working-directory: hub
-      - run: uv run pytest tests/ -vv --cov=trivyal_hub --cov-report=term --cov-fail-under=75
+      - run: uv run pytest tests/ -vv --cov=trivyal_hub --cov-report=term --cov-fail-under=80
         working-directory: hub
 
   test-agent:
@@ -101,7 +101,7 @@ jobs:
           cache-dependency-glob: "agent/uv.lock"
       - run: uv sync
         working-directory: agent
-      - run: uv run pytest tests/ -vv --cov=trivyal_agent --cov-report=term --cov-fail-under=75
+      - run: uv run pytest tests/ -vv --cov=trivyal_agent --cov-report=term --cov-fail-under=80
         working-directory: agent
 
   test-ui:

@@ -1,5 +1,6 @@
 """Tests for ws/client.py."""
 
+import asyncio
 import json
 from base64 import b64encode
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -503,3 +504,169 @@ class TestFlushCache:
         await client._flush_cache(mock_ws)
 
         mock_ws.send.assert_not_called()
+
+
+class TestMainLoop:
+    async def test_scan_trigger_dispatches_scan_cycle(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        # Mock ws that yields one scan_trigger message then stops
+        mock_ws = AsyncMock()
+        mock_ws.__aiter__ = lambda self: self
+        messages = [json.dumps({"type": "scan_trigger"})]
+        mock_ws.__anext__ = AsyncMock(side_effect=[*messages, StopAsyncIteration()])
+
+        with patch.object(client, "_run_scan_cycle", new_callable=AsyncMock) as mock_scan:
+            # Patch run_scheduler to do nothing
+            with patch("trivyal_agent.ws.client.run_scheduler", new_callable=AsyncMock):
+                await client._main_loop(mock_ws)
+
+            # _run_scan_cycle is fire-and-forget via create_task, give it a tick
+            await asyncio.sleep(0)
+            mock_scan.assert_called_once()
+
+    async def test_heartbeat_ack_handled_silently(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        mock_ws = AsyncMock()
+        mock_ws.__aiter__ = lambda self: self
+        messages = [json.dumps({"type": "heartbeat_ack"})]
+        mock_ws.__anext__ = AsyncMock(side_effect=[*messages, StopAsyncIteration()])
+
+        with patch("trivyal_agent.ws.client.run_scheduler", new_callable=AsyncMock):
+            # Should complete without error
+            await client._main_loop(mock_ws)
+
+
+class TestHeartbeatLoop:
+    async def test_sends_heartbeat_message(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        sent = []
+        mock_ws = AsyncMock()
+
+        call_count = 0
+
+        async def _fake_send(data):
+            nonlocal call_count
+            sent.append(json.loads(data))
+            call_count += 1
+            if call_count >= 1:
+                raise Exception("stop")
+
+        mock_ws.send = AsyncMock(side_effect=_fake_send)
+
+        with patch("trivyal_agent.ws.client.asyncio.sleep", new_callable=AsyncMock):
+            await client._heartbeat_loop(mock_ws)
+
+        assert len(sent) == 1
+        assert sent[0]["type"] == "heartbeat"
+
+    async def test_breaks_on_send_failure(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        mock_ws = AsyncMock()
+        mock_ws.send = AsyncMock(side_effect=Exception("connection lost"))
+
+        with patch("trivyal_agent.ws.client.asyncio.sleep", new_callable=AsyncMock):
+            # Should exit the loop without propagating
+            await client._heartbeat_loop(mock_ws)
+
+
+class TestRunReconnectLoop:
+    async def test_reconnects_on_generic_exception(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path), reconnect_delay=0)
+        client = AgentClient(settings)
+
+        call_count = 0
+
+        async def _fake_connect():
+            nonlocal call_count
+            call_count += 1
+            if call_count >= 2:
+                raise asyncio.CancelledError
+            raise ConnectionError("hub unreachable")
+
+        with (
+            patch.object(client, "_connect_and_run", side_effect=_fake_connect),
+            patch("trivyal_agent.ws.client.asyncio.sleep", new_callable=AsyncMock),
+            pytest.raises(asyncio.CancelledError),
+        ):
+            await client.run()
+
+        assert call_count == 2
+
+    async def test_reconnects_on_auth_error(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path), reconnect_delay=0)
+        client = AgentClient(settings)
+
+        call_count = 0
+
+        async def _fake_connect():
+            nonlocal call_count
+            call_count += 1
+            if call_count >= 2:
+                raise asyncio.CancelledError
+            raise AuthError("bad signature")
+
+        with (
+            patch.object(client, "_connect_and_run", side_effect=_fake_connect),
+            patch("trivyal_agent.ws.client.asyncio.sleep", new_callable=AsyncMock),
+            pytest.raises(asyncio.CancelledError),
+        ):
+            await client.run()
+
+        assert call_count == 2
+
+    async def test_cancelled_error_propagates(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        with (
+            patch.object(client, "_connect_and_run", side_effect=asyncio.CancelledError),
+            pytest.raises(asyncio.CancelledError),
+        ):
+            await client.run()
+
+
+class TestSendErrorHandling:
+    async def test_misconfig_check_failure_does_not_crash_scan_cycle(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        mock_ws = AsyncMock()
+        containers = [{"image_name": "nginx:latest", "container_name": "c1", "image_digest": ""}]
+        scan_result = {"ArtifactName": "nginx:latest", "Results": []}
+
+        with (
+            patch("trivyal_agent.ws.client.list_running_images", return_value=containers),
+            patch("trivyal_agent.ws.client.scan_all_images", return_value=[scan_result]),
+            patch("trivyal_agent.ws.client.save"),
+            patch("trivyal_agent.ws.client.run_misconfig_checks", side_effect=Exception("docker error")),
+        ):
+            # Should not raise
+            await client._run_scan_cycle(mock_ws)
+
+    async def test_send_scan_result_failure_is_logged_not_raised(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        mock_ws = AsyncMock()
+        mock_ws.send = AsyncMock(side_effect=Exception("connection lost"))
+
+        # Should not raise
+        await client._send_scan_result(mock_ws, {"ArtifactName": "nginx:latest"}, "c1")
+
+    async def test_send_misconfig_result_failure_is_logged_not_raised(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        mock_ws = AsyncMock()
+        mock_ws.send = AsyncMock(side_effect=Exception("connection lost"))
+
+        # Should not raise
+        await client._send_misconfig_result(mock_ws, {"container_name": "c1", "findings": []})
