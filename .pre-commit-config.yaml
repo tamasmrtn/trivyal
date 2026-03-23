@@ -59,6 +59,27 @@ repos:
         files: ^(hub|agent)/src/
         additional_dependencies: ["bandit[toml]"]
 
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.10.0
+    hooks:
+      - id: pip-audit
+        name: pip-audit (hub)
+        args: [--path, hub]
+        files: ^hub/(pyproject\.toml|uv\.lock)$
+      - id: pip-audit
+        name: pip-audit (agent)
+        args: [--path, agent]
+        files: ^agent/(pyproject\.toml|uv\.lock)$
+
+  - repo: local
+    hooks:
+      - id: npm-audit
+        name: npm audit (ui)
+        entry: bash -c 'cd ui && npm audit --audit-level=high'
+        language: system
+        files: ^ui/(package\.json|package-lock\.json)$
+        pass_filenames: false
+
   - repo: https://github.com/bridgecrewio/checkov.git
     rev: 3.2.510
     hooks:

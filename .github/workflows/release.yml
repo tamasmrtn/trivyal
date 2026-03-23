@@ -10,6 +10,34 @@ permissions:
   packages: write
 
 jobs:
+  dep-scan:
+    name: Dependency vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/uv.lock"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: Audit hub Python deps
+        run: |
+          cd hub && uv export --no-dev --no-hashes -o /tmp/hub-reqs.txt
+          uv tool run pip-audit -r /tmp/hub-reqs.txt --strict
+      - name: Audit agent Python deps
+        run: |
+          cd agent && uv export --no-dev --no-hashes -o /tmp/agent-reqs.txt
+          uv tool run pip-audit -r /tmp/agent-reqs.txt --strict
+      - name: Audit UI npm deps
+        run: cd ui && npm ci && npm audit --audit-level=high
+
   lint:
     name: Lint (pre-commit)
     runs-on: ubuntu-latest
@@ -104,7 +132,7 @@ jobs:
   docker:
     name: Build and push Docker images
     runs-on: ubuntu-latest
-    needs: test-integration
+    needs: [test-integration, dep-scan]
     strategy:
       matrix:
         include:
