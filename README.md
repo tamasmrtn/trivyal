@@ -194,7 +194,7 @@ All variables use the `TRIVYAL_` prefix and are read from the environment or a `
 
 ## Contributing
 
-Contributions are welcome. Please open an issue before submitting a pull request for non-trivial changes so we can discuss the approach first.
+Contributions are welcome! See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for setup instructions and guidelines. Please open an issue before submitting a pull request for non-trivial changes so we can discuss the approach first.
 
 ### Development Setup
 
