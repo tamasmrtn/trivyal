@@ -45,7 +45,7 @@ RUN pip uninstall -y pip && \
     chown -R trivyal:trivyal /app/data
 
 HEALTHCHECK --interval=60s --timeout=5s --start-period=15s --retries=3 \
-    CMD wget -qO- http://localhost:8100/health || exit 1
+    CMD wget -qO- http://localhost:${TRIVYAL_HEALTH_PORT:-8100}/health || exit 1
 
 USER trivyal
 
