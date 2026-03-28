@@ -9,7 +9,7 @@ FROM aquasec/trivy:0.69.3 AS trivy-source
 FROM python:3.14-alpine AS python-builder
 
 # uv is a build tool — it belongs here, not in the runtime image
-COPY --from=ghcr.io/astral-sh/uv:0.11.1-python3.14-trixie-slim /usr/local/bin/uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.11.2-python3.14-trixie-slim /usr/local/bin/uv /usr/local/bin/uv
 
 WORKDIR /app
 
