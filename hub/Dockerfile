@@ -1,4 +1,5 @@
 # hub/Dockerfile
+# checkov:skip=CKV_DOCKER_2: healthcheck is defined in docker-compose.hub.yml
 
 # ── Stage 1: Build the React UI ──────────────────────────────────────────────
 FROM node:24-alpine AS ui-builder
@@ -59,9 +60,6 @@ RUN pip uninstall -y pip && \
     chown -R trivyal:trivyal /app/data
 
 EXPOSE 8099
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -qO- http://localhost:8099/api/health || exit 1
 
 USER trivyal
 

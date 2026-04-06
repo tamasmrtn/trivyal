@@ -13,7 +13,6 @@ from trivyal_agent.core.docker_client import collect_host_metadata, list_running
 from trivyal_agent.core.misconfig_runner import run_misconfig_checks
 from trivyal_agent.core.scheduler import run_scheduler
 from trivyal_agent.core.trivy_runner import scan_all_images
-from trivyal_agent.health import HealthServer
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +24,8 @@ class AuthError(Exception):
 class AgentClient:
     """Manages the WebSocket connection lifecycle with the hub."""
 
-    def __init__(self, settings: Settings, health: HealthServer | None = None) -> None:
+    def __init__(self, settings: Settings) -> None:
         self._settings = settings
-        self._health = health
         self._ws: ws_client.ClientConnection | None = None
 
     # ── Public API ────────────────────────────────────────────────────────────
@@ -65,8 +63,6 @@ class AgentClient:
                 await self._main_loop(ws)
             finally:
                 self._ws = None
-                if self._health:
-                    self._health.set_connected(False)
 
     async def _handshake(self, ws: ws_client.ClientConnection) -> None:
         """Complete the hub challenge-response handshake."""
@@ -96,8 +92,6 @@ class AgentClient:
         # Flush any cached results from previous disconnected period
         await self._flush_cache(ws)
 
-        if self._health:
-            self._health.set_connected(True)
         logger.info("Handshake complete")
 
     async def _main_loop(self, ws: ws_client.ClientConnection) -> None:
