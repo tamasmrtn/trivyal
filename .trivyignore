@@ -23,3 +23,22 @@ CVE-2026-27142
 # FileInfo can escape from a Root via race condition. Trivy does not use os.Root.
 # Fixed in Go v1.25.8 / v1.26.1; Trivy v0.69.3 is built with Go v1.25.7. Awaiting upstream release.
 CVE-2026-27139
+
+# CVE-2026-34040 — HIGH severity in github.com/docker/docker embedded in the Trivy binary.
+# Awaiting upstream Trivy release with docker/docker >= 29.3.1.
+CVE-2026-34040
+
+# CVE-2026-34986 — HIGH severity in github.com/go-jose/go-jose/v4 embedded in the Trivy binary.
+# JWE decryption panic. Trivy does not use go-jose for any exposed endpoint.
+# Awaiting upstream Trivy release with go-jose >= 4.1.4.
+CVE-2026-34986
+
+# CVE-2026-33747 — HIGH severity in github.com/moby/buildkit embedded in the Trivy binary.
+# Arbitrary file write via untrusted frontend. Trivy runs as a local read-only scanner.
+# Awaiting upstream Trivy release with buildkit >= 0.28.1.
+CVE-2026-33747
+
+# CVE-2026-33748 — HIGH severity in github.com/moby/buildkit embedded in the Trivy binary.
+# Unauthorized file access via Git URL fragment. Trivy runs as a local read-only scanner.
+# Awaiting upstream Trivy release with buildkit >= 0.28.1.
+CVE-2026-33748
