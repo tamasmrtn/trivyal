@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     agent_version: str = Field(default_factory=lambda: importlib.metadata.version("trivyal-agent"))
     heartbeat_interval: int = 30  # seconds between heartbeats
     reconnect_delay: int = 10  # seconds before reconnect attempt
+    health_port: int = 8100  # port for the HTTP health endpoint
     max_scan_age_days: int = 3  # force rescan after this many days even if digest unchanged
 
 

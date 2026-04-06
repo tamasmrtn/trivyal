@@ -5,6 +5,7 @@ import logging
 import sys
 
 from trivyal_agent.config import settings
+from trivyal_agent.health import HealthServer
 from trivyal_agent.ws.client import AgentClient
 
 logging.basicConfig(
@@ -34,8 +35,9 @@ async def _main() -> None:
         settings.scan_schedule,
     )
 
-    client = AgentClient(settings)
-    await client.run()
+    health = HealthServer(settings.health_port)
+    client = AgentClient(settings, health=health)
+    await asyncio.gather(health.serve(), client.run())
 
 
 def main() -> None:

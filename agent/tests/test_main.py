@@ -1,5 +1,6 @@
 """Tests for main.py — agent entrypoint validation and startup."""
 
+import asyncio
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -46,13 +47,24 @@ class TestMainEntrypoint:
         data_dir = tmp_path / "agent-data"
         settings = _make_settings(data_dir=str(data_dir))
 
+        # Make gather return immediately by raising CancelledError
+        async def _fake_gather(*coros, **kwargs):
+            for c in coros:
+                c.close()
+            raise asyncio.CancelledError
+
         with (
             patch("trivyal_agent.main.settings", settings),
+            patch("trivyal_agent.main.HealthServer") as mock_health_cls,
             patch("trivyal_agent.main.AgentClient") as mock_client_cls,
+            patch("trivyal_agent.main.asyncio.gather", side_effect=_fake_gather),
         ):
+            mock_health_cls.return_value.serve = AsyncMock()
             mock_client_cls.return_value.run = AsyncMock()
 
-            await _main()
+            with pytest.raises(asyncio.CancelledError):
+                await _main()
 
         assert data_dir.exists()
         mock_client_cls.assert_called_once()
+        mock_health_cls.assert_called_once_with(settings.health_port)
