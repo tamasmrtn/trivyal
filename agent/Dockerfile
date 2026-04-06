@@ -1,4 +1,5 @@
 # agent/Dockerfile
+# checkov:skip=CKV_DOCKER_2: healthcheck is defined in docker-compose.agent.yml
 
 # ── Stage 1: Extract Trivy binary ────────────────────────────────────────────
 FROM aquasec/trivy:0.69.3 AS trivy-source
@@ -43,9 +44,6 @@ RUN pip uninstall -y pip && \
     adduser -S -G trivyal -H trivyal && \
     mkdir -p /app/data && \
     chown -R trivyal:trivyal /app/data
-
-HEALTHCHECK --interval=60s --timeout=5s --start-period=15s --retries=3 \
-    CMD wget -qO- http://localhost:${TRIVYAL_HEALTH_PORT:-8100}/health || exit 1
 
 USER trivyal
 
