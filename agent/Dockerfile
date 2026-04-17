@@ -2,7 +2,7 @@
 # checkov:skip=CKV_DOCKER_2: healthcheck is defined in docker-compose.agent.yml
 
 # ── Stage 1: Extract Trivy binary ────────────────────────────────────────────
-FROM aquasec/trivy:0.69.3 AS trivy-source
+FROM aquasec/trivy:0.70.0 AS trivy-source
 # Nothing to run — we only need the binary at /usr/local/bin/trivy
 
 
@@ -10,7 +10,7 @@ FROM aquasec/trivy:0.69.3 AS trivy-source
 FROM python:3.14-alpine AS python-builder
 
 # uv is a build tool — it belongs here, not in the runtime image
-COPY --from=ghcr.io/astral-sh/uv:0.11.3-python3.14-trixie-slim /usr/local/bin/uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.11.7-python3.14-trixie-slim /usr/local/bin/uv /usr/local/bin/uv
 
 WORKDIR /app
 
