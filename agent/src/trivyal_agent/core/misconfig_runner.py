@@ -2,68 +2,90 @@
 
 import asyncio
 import logging
+from typing import Any
 
 from .docker_socket import _docker
+from .misconfig_rules import RULES, Rule, RuleType
 
 logger = logging.getLogger(__name__)
 
-DANGEROUS_CAPS = {"SYS_ADMIN", "NET_ADMIN", "SYS_PTRACE", "ALL"}
+
+def _resolve_field(container: dict, dotpath: str, default: Any = None) -> Any:
+    """Resolve a dot-separated path against the container inspect dict."""
+    obj: Any = container
+    for key in dotpath.split("."):
+        if not isinstance(obj, dict):
+            return default
+        obj = obj.get(key)
+        if obj is None:
+            return default
+    return obj
+
+
+def _finding(rule: Rule, detail: str = "") -> dict:
+    """Build the output dict for a triggered rule."""
+    guideline = rule.fix_guideline.format(detail=detail) if detail else rule.fix_guideline
+    return {
+        "check_id": rule.check_id,
+        "severity": str(rule.severity),
+        "title": rule.title,
+        "fix_guideline": guideline,
+    }
+
+
+def _match_mount_source(source: str, paths: list[str]) -> bool:
+    """Check if a bind-mount source matches any of the given paths (prefix-aware)."""
+    return any(source == path or source.startswith(path + "/") for path in paths)
+
+
+def _evaluate_rule(rule: Rule, container: dict) -> dict | None:
+    """Evaluate a single rule against a container. Returns finding dict or None."""
+    raw = _resolve_field(container, rule.field)
+
+    match rule.rule_type:
+        case RuleType.FIELD_TRUTHY:
+            if not raw:
+                return None
+
+        case RuleType.FIELD_EQUALS:
+            effective = raw if raw is not None else (0 if rule.value == 0 else None)
+            if effective != rule.value:
+                return None
+
+        case RuleType.FIELD_ABSENT:
+            if raw:
+                return None
+
+        case RuleType.LIST_MISSING_SUBSTR:
+            items = raw or []
+            if any(rule.value in item for item in items):
+                return None
+
+        case RuleType.SET_INTERSECTION:
+            items = raw or []
+            matched = rule.value.intersection(v.upper() for v in items)
+            if not matched:
+                return None
+            return _finding(rule, detail=", ".join(sorted(matched)))
+
+        case RuleType.MOUNT_PATH:
+            binds = raw or []
+            sources = [b.split(":")[0] for b in binds]
+            matched = [s for s in sources if _match_mount_source(s, rule.value)]
+            if not matched:
+                return None
+            return _finding(rule, detail=", ".join(sorted(matched)))
+
+    return _finding(rule)
 
 
 def _check_container(container: dict) -> list[dict]:
-    """Run misconfig checks against a single container inspect dict."""
+    """Run all misconfig rules against a single container inspect dict."""
     findings = []
-    host_config = container.get("HostConfig", {})
-
-    # PRIV_001: Privileged mode
-    if host_config.get("Privileged"):
-        findings.append(
-            {
-                "check_id": "PRIV_001",
-                "severity": "HIGH",
-                "title": "Container running in privileged mode",
-                "fix_guideline": "Remove 'privileged: true' from the container definition.",
-            }
-        )
-
-    # CAP_001: Dangerous capabilities
-    cap_add = host_config.get("CapAdd") or []
-    dangerous = DANGEROUS_CAPS.intersection(c.upper() for c in cap_add)
-    if dangerous:
-        caps_str = ", ".join(sorted(dangerous))
-        findings.append(
-            {
-                "check_id": "CAP_001",
-                "severity": "HIGH",
-                "title": "Container has dangerous capabilities",
-                "fix_guideline": f"Remove capabilities: {caps_str}.",
-            }
-        )
-
-    # NET_001: Host network mode
-    if host_config.get("NetworkMode") == "host":
-        findings.append(
-            {
-                "check_id": "NET_001",
-                "severity": "MEDIUM",
-                "title": "Container using host network mode",
-                "fix_guideline": "Use a dedicated Docker network instead of 'network_mode: host'.",
-            }
-        )
-
-    # PRIV_002: Missing no-new-privileges
-    security_opt = host_config.get("SecurityOpt") or []
-    has_no_new_privs = any("no-new-privileges" in opt for opt in security_opt)
-    if not has_no_new_privs:
-        findings.append(
-            {
-                "check_id": "PRIV_002",
-                "severity": "MEDIUM",
-                "title": "Container missing no-new-privileges security option",
-                "fix_guideline": "Add 'security_opt: [no-new-privileges:true]' to the container definition.",
-            }
-        )
-
+    for rule in RULES:
+        result = _evaluate_rule(rule, container)
+        if result is not None:
+            findings.append(result)
     return findings
 
 
