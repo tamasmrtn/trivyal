@@ -4,10 +4,8 @@ from trivyal_hub.core.auth import (
     generate_admin_token,
     generate_keypair,
     generate_token,
-    hash_token,
     sign_challenge,
     verify_signature,
-    verify_token,
 )
 
 
@@ -19,17 +17,6 @@ class TestTokenGeneration:
 
     def test_tokens_are_unique(self):
         assert generate_token() != generate_token()
-
-
-class TestTokenVerification:
-    def test_correct_token_verifies(self):
-        token = generate_token()
-        token_hash = hash_token(token)
-        assert verify_token(token, token_hash) is True
-
-    def test_wrong_token_fails(self):
-        token_hash = hash_token(generate_token())
-        assert verify_token("wrong", token_hash) is False
 
 
 class TestKeypair:

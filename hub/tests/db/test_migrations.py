@@ -27,7 +27,7 @@ class TestMigrations:
                 assert "alembic_version" in tables
 
                 version = await conn.scalar(text("SELECT version_num FROM alembic_version"))
-                assert version == "0005"
+                assert version == "0006"
         finally:
             await eng.dispose()
 
@@ -48,6 +48,6 @@ class TestMigrations:
         try:
             async with eng.connect() as conn:
                 version = await conn.scalar(text("SELECT version_num FROM alembic_version"))
-                assert version == "0005"
+                assert version == "0006"
         finally:
             await eng.dispose()

@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     static_dir: Path = Path("/app/static")
     tz: str = "UTC"
     acceptance_expiry_interval: int = 3600  # seconds between expiry sweeps
+    heartbeat_timeout: int = 75  # seconds before a silent agent is considered dead
+    auth_rate_limit: int = 5  # max failed auth attempts per IP within the window
+    auth_rate_window: int = 60  # seconds for the rate limit sliding window
 
     @property
     def db_url(self) -> str:

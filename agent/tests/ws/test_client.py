@@ -23,6 +23,7 @@ def _make_settings(**overrides) -> Settings:
         "data_dir": "/tmp/trivyal-test",
         "heartbeat_interval": 30,
         "reconnect_delay": 1,
+        "initial_connect_jitter": 0,
     }
     defaults.update(overrides)
     return Settings(**defaults)
@@ -511,14 +512,10 @@ class TestMainLoop:
         settings = _make_settings(data_dir=str(tmp_path))
         client = AgentClient(settings)
 
-        # Mock ws that yields one scan_trigger message then stops
         mock_ws = AsyncMock()
-        mock_ws.__aiter__ = lambda self: self
-        messages = [json.dumps({"type": "scan_trigger"})]
-        mock_ws.__anext__ = AsyncMock(side_effect=[*messages, StopAsyncIteration()])
+        mock_ws.recv = AsyncMock(side_effect=[json.dumps({"type": "scan_trigger"}), TimeoutError])
 
         with patch.object(client, "_run_scan_cycle", new_callable=AsyncMock) as mock_scan:
-            # Patch run_scheduler to do nothing
             with patch("trivyal_agent.ws.client.run_scheduler", new_callable=AsyncMock):
                 await client._main_loop(mock_ws)
 
@@ -531,12 +528,21 @@ class TestMainLoop:
         client = AgentClient(settings)
 
         mock_ws = AsyncMock()
-        mock_ws.__aiter__ = lambda self: self
-        messages = [json.dumps({"type": "heartbeat_ack"})]
-        mock_ws.__anext__ = AsyncMock(side_effect=[*messages, StopAsyncIteration()])
+        mock_ws.recv = AsyncMock(side_effect=[json.dumps({"type": "heartbeat_ack"}), TimeoutError])
 
         with patch("trivyal_agent.ws.client.run_scheduler", new_callable=AsyncMock):
-            # Should complete without error
+            await client._main_loop(mock_ws)
+
+    async def test_reconnects_on_recv_timeout(self, tmp_path):
+        """If hub goes silent beyond 2x heartbeat_interval, the loop exits cleanly."""
+        settings = _make_settings(data_dir=str(tmp_path))
+        client = AgentClient(settings)
+
+        mock_ws = AsyncMock()
+        mock_ws.recv = AsyncMock(side_effect=TimeoutError)
+
+        with patch("trivyal_agent.ws.client.run_scheduler", new_callable=AsyncMock):
+            # Should exit cleanly (break), not raise
             await client._main_loop(mock_ws)
 
 
@@ -575,6 +581,86 @@ class TestHeartbeatLoop:
         with patch("trivyal_agent.ws.client.asyncio.sleep", new_callable=AsyncMock):
             # Should exit the loop without propagating
             await client._heartbeat_loop(mock_ws)
+
+
+class TestInitialConnectJitter:
+    async def test_stagger_sleeps_before_first_connect(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path), initial_connect_jitter=10)
+        client = AgentClient(settings)
+
+        sleep_delays = []
+
+        async def _capture_sleep(delay):
+            sleep_delays.append(delay)
+
+        async def _fake_connect():
+            raise asyncio.CancelledError
+
+        with (
+            patch.object(client, "_connect_and_run", side_effect=_fake_connect),
+            patch("trivyal_agent.ws.client.asyncio.sleep", side_effect=_capture_sleep),
+            pytest.raises(asyncio.CancelledError),
+        ):
+            await client.run()
+
+        # First sleep should be the jitter (0-10), second would be reconnect
+        assert len(sleep_delays) >= 1
+        assert 0 <= sleep_delays[0] <= 10
+
+    async def test_no_stagger_when_jitter_is_zero(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path), initial_connect_jitter=0)
+        client = AgentClient(settings)
+
+        call_count = 0
+
+        async def _fake_connect():
+            nonlocal call_count
+            call_count += 1
+            raise asyncio.CancelledError
+
+        with (
+            patch.object(client, "_connect_and_run", side_effect=_fake_connect),
+            pytest.raises(asyncio.CancelledError),
+        ):
+            await client.run()
+
+        # Should go straight to connect without any sleep
+        assert call_count == 1
+
+
+class TestBackoff:
+    def test_first_attempt_uses_base_delay(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path), reconnect_delay=10, reconnect_jitter=0)
+        client = AgentClient(settings)
+
+        assert client._compute_backoff(0) == 10.0
+
+    def test_exponential_growth(self, tmp_path):
+        settings = _make_settings(data_dir=str(tmp_path), reconnect_delay=10, reconnect_jitter=0)
+        client = AgentClient(settings)
+
+        assert client._compute_backoff(1) == 20.0
+        assert client._compute_backoff(2) == 40.0
+        assert client._compute_backoff(3) == 80.0
+
+    def test_caps_at_max_delay(self, tmp_path):
+        settings = _make_settings(
+            data_dir=str(tmp_path), reconnect_delay=10, max_reconnect_delay=300, reconnect_jitter=0
+        )
+        client = AgentClient(settings)
+
+        # 10 * 2^10 = 10240 but should be capped at 300
+        assert client._compute_backoff(10) == 300.0
+
+    def test_jitter_within_bounds(self, tmp_path):
+        settings = _make_settings(
+            data_dir=str(tmp_path), reconnect_delay=100, max_reconnect_delay=300, reconnect_jitter=0.25
+        )
+        client = AgentClient(settings)
+
+        for _ in range(100):
+            delay = client._compute_backoff(0)
+            assert 75.0 <= delay <= 125.0  # 100 ± 25%
 
 
 class TestRunReconnectLoop:
@@ -631,6 +717,67 @@ class TestRunReconnectLoop:
             pytest.raises(asyncio.CancelledError),
         ):
             await client.run()
+
+    async def test_backoff_increases_on_repeated_failures(self, tmp_path):
+        settings = _make_settings(
+            data_dir=str(tmp_path), reconnect_delay=10, max_reconnect_delay=300, reconnect_jitter=0
+        )
+        client = AgentClient(settings)
+
+        call_count = 0
+        sleep_delays = []
+
+        async def _fake_connect():
+            nonlocal call_count
+            call_count += 1
+            if call_count >= 4:
+                raise asyncio.CancelledError
+            raise ConnectionError("hub unreachable")
+
+        async def _capture_sleep(delay):
+            sleep_delays.append(delay)
+
+        with (
+            patch.object(client, "_connect_and_run", side_effect=_fake_connect),
+            patch("trivyal_agent.ws.client.asyncio.sleep", side_effect=_capture_sleep),
+            pytest.raises(asyncio.CancelledError),
+        ):
+            await client.run()
+
+        assert sleep_delays == [10.0, 20.0, 40.0]
+
+    async def test_backoff_resets_on_successful_connection(self, tmp_path):
+        settings = _make_settings(
+            data_dir=str(tmp_path), reconnect_delay=10, max_reconnect_delay=300, reconnect_jitter=0
+        )
+        client = AgentClient(settings)
+
+        call_count = 0
+        sleep_delays = []
+
+        async def _fake_connect():
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise ConnectionError("fail 1")  # attempt=0 → delay=10
+            if call_count == 2:
+                return  # success → resets attempt to 0
+            if call_count == 3:
+                raise ConnectionError("fail 2")  # attempt=0 again → delay=10
+            raise asyncio.CancelledError
+
+        async def _capture_sleep(delay):
+            sleep_delays.append(delay)
+
+        with (
+            patch.object(client, "_connect_and_run", side_effect=_fake_connect),
+            patch("trivyal_agent.ws.client.asyncio.sleep", side_effect=_capture_sleep),
+            pytest.raises(asyncio.CancelledError),
+        ):
+            await client.run()
+
+        # Both delays should be 10 (base) because attempt reset after success
+        assert sleep_delays == [10.0, 10.0]
 
 
 class TestSendErrorHandling:

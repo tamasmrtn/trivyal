@@ -3,7 +3,9 @@
 import asyncio
 import json
 import logging
+import random
 
+import websockets
 import websockets.asyncio.client as ws_client
 
 from trivyal_agent.config import Settings
@@ -35,20 +37,38 @@ class AgentClient:
     async def run(self) -> None:
         """Connect to the hub and maintain the connection indefinitely.
 
-        Reconnects with a fixed delay on any transient error.
+        Reconnects with exponential backoff and jitter on transient errors.
         """
+        if self._settings.initial_connect_jitter > 0:
+            jitter = random.uniform(0, self._settings.initial_connect_jitter)  # nosec B311
+            logger.info("Staggering initial connection by %.1fs", jitter)
+            await asyncio.sleep(jitter)
+
+        attempt = 0
         while True:
             try:
                 await self._connect_and_run()
+                attempt = 0  # reset on clean disconnect
             except asyncio.CancelledError:
                 logger.info("Agent client cancelled — shutting down")
                 raise
             except AuthError:
-                logger.exception("Authentication failed — check TOKEN and KEY settings")
-                await asyncio.sleep(self._settings.reconnect_delay)
+                delay = self._compute_backoff(attempt)
+                logger.exception("Authentication failed — retrying in %.1fs (check TOKEN and KEY settings)", delay)
+                await asyncio.sleep(delay)
+                attempt += 1
             except Exception:
-                logger.warning("Connection error — reconnecting in %ds", self._settings.reconnect_delay)
-                await asyncio.sleep(self._settings.reconnect_delay)
+                delay = self._compute_backoff(attempt)
+                logger.warning("Connection error — reconnecting in %.1fs", delay)
+                await asyncio.sleep(delay)
+                attempt += 1
+
+    def _compute_backoff(self, attempt: int) -> float:
+        """Compute reconnect delay with exponential backoff and jitter."""
+        base = self._settings.reconnect_delay
+        delay = min(base * (2**attempt), self._settings.max_reconnect_delay)
+        jitter = self._settings.reconnect_jitter
+        return delay * (1 + random.uniform(-jitter, jitter))  # nosec B311
 
     # ── Internal lifecycle ────────────────────────────────────────────────────
 
@@ -57,7 +77,13 @@ class AgentClient:
         headers = {"Authorization": f"Bearer {self._settings.token.get_secret_value()}"}
         logger.info("Connecting to hub at %s", ws_url)
 
-        async with ws_client.connect(ws_url, additional_headers=headers) as ws:
+        async with ws_client.connect(
+            ws_url,
+            additional_headers=headers,
+            open_timeout=self._settings.connect_timeout,
+            close_timeout=10,
+            max_size=10 * 1024 * 1024,  # 10 MB
+        ) as ws:
             self._ws = ws
             logger.info("Connected to hub")
             try:
@@ -86,7 +112,7 @@ class AgentClient:
         logger.debug("Hub challenge verified")
 
         # Send machine fingerprint
-        fingerprint = get_machine_fingerprint()
+        fingerprint = get_machine_fingerprint(self._settings.data_dir)
         await ws.send(json.dumps({"type": "fingerprint", "fingerprint": fingerprint}))
 
         # Send host metadata
@@ -107,8 +133,17 @@ class AgentClient:
             run_scheduler(self._settings.scan_schedule, lambda: self._run_scan_cycle(ws))
         )
 
+        recv_timeout = self._settings.heartbeat_interval * 2
         try:
-            async for raw in ws:
+            while True:
+                try:
+                    raw = await asyncio.wait_for(ws.recv(), timeout=recv_timeout)
+                except TimeoutError:
+                    logger.warning("No message from hub in %ds — reconnecting", recv_timeout)
+                    break
+                except websockets.ConnectionClosed:
+                    logger.info("Connection closed by hub")
+                    break
                 data = json.loads(raw)
                 msg_type = data.get("type")
 
