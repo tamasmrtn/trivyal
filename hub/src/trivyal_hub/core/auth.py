@@ -1,7 +1,6 @@
 """Token generation, hashing, verification, and Ed25519 key management."""
 
 import hashlib
-import hmac
 import secrets
 from base64 import b64decode, b64encode
 
@@ -16,11 +15,6 @@ def generate_token() -> str:
 
 def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
-
-
-def verify_token(token: str, token_hash: str) -> bool:
-    candidate = hashlib.sha256(token.encode()).hexdigest()
-    return hmac.compare_digest(candidate, token_hash)
 
 
 def generate_keypair() -> tuple[str, str]:

@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import signal
 import sys
 
 from trivyal_agent.config import settings
@@ -37,7 +38,30 @@ async def _main() -> None:
 
     health = HealthServer(settings.health_port)
     client = AgentClient(settings, health=health)
-    await asyncio.gather(health.serve(), client.run())
+
+    shutdown_event = asyncio.Event()
+    loop = asyncio.get_running_loop()
+
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(
+            sig,
+            lambda s=sig: (
+                logger.info("Received %s — initiating graceful shutdown", signal.Signals(s).name),
+                shutdown_event.set(),
+            ),
+        )
+
+    shutdown_task = asyncio.create_task(shutdown_event.wait())
+    health_task = asyncio.create_task(health.serve())
+    client_task = asyncio.create_task(client.run())
+
+    tasks = {shutdown_task, health_task, client_task}
+    done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+    for t in pending:
+        t.cancel()
+    await asyncio.gather(*pending, return_exceptions=True)
+
+    logger.info("Agent shut down cleanly")
 
 
 def main() -> None:

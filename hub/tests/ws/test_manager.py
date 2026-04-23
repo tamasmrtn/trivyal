@@ -11,6 +11,7 @@ Covers the three bug-prone paths discovered in the fix:
    instead of WebSocketDisconnect when the race fires; handle_connection must survive.
 """
 
+import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi import WebSocketDisconnect
@@ -215,6 +216,141 @@ class TestHandleConnection:
         assert manager.active.get("agent-1") is ws2
         # ws1's finally must NOT have written OFFLINE — ws2 owns the agent now
         assert agent.status != AgentStatus.OFFLINE
+
+
+class TestRateLimit:
+    def test_allows_under_threshold(self):
+        manager = ConnectionManager()
+        for _ in range(4):
+            manager.record_auth_failure("10.0.0.1")
+        assert manager.is_rate_limited("10.0.0.1") is False
+
+    def test_blocks_after_threshold(self):
+        manager = ConnectionManager()
+        for _ in range(5):
+            manager.record_auth_failure("10.0.0.1")
+        assert manager.is_rate_limited("10.0.0.1") is True
+
+    def test_resets_after_window_expires(self):
+        manager = ConnectionManager()
+        # Record failures "in the past" by inserting old timestamps
+        old_time = time.monotonic() - 120  # 2 minutes ago
+        manager._auth_failures["10.0.0.1"] = [old_time] * 10
+
+        assert manager.is_rate_limited("10.0.0.1") is False
+
+    def test_different_ips_tracked_independently(self):
+        manager = ConnectionManager()
+        for _ in range(5):
+            manager.record_auth_failure("10.0.0.1")
+        assert manager.is_rate_limited("10.0.0.1") is True
+        assert manager.is_rate_limited("10.0.0.2") is False
+
+    async def test_rate_limited_connection_closed_immediately(self):
+        manager = ConnectionManager()
+        for _ in range(5):
+            manager.record_auth_failure("10.0.0.1")
+
+        ws = AsyncMock()
+        ws.client = MagicMock()
+        ws.client.host = "10.0.0.1"
+        session = AsyncMock()
+        session.add = MagicMock()
+
+        await manager.handle_connection(ws, session)
+
+        ws.close.assert_called_once_with(code=4004, reason="Rate limited")
+
+
+class TestMonitorAgents:
+    """Heartbeat timeout monitor — closes stale agent connections."""
+
+    async def test_closes_stale_connection(self):
+        manager = ConnectionManager()
+        ws = AsyncMock()
+        manager.active["agent-1"] = ws
+        manager.last_seen["agent-1"] = time.monotonic() - 100  # 100s ago
+
+        # Run one iteration of the monitor logic directly
+        await manager._monitor_agents_once()
+
+        ws.close.assert_called_once_with(code=4002, reason="Heartbeat timeout")
+
+    async def test_leaves_fresh_connection_alone(self):
+        manager = ConnectionManager()
+        ws = AsyncMock()
+        manager.active["agent-1"] = ws
+        manager.last_seen["agent-1"] = time.monotonic()  # just now
+
+        await manager._monitor_agents_once()
+
+        ws.close.assert_not_called()
+
+    async def test_survives_close_error(self):
+        manager = ConnectionManager()
+        ws1 = AsyncMock()
+        ws1.close = AsyncMock(side_effect=Exception("already closed"))
+        ws2 = AsyncMock()
+        manager.active["agent-1"] = ws1
+        manager.active["agent-2"] = ws2
+        manager.last_seen["agent-1"] = time.monotonic() - 100
+        manager.last_seen["agent-2"] = time.monotonic() - 100
+
+        # Should not raise, and ws2 should still be closed
+        await manager._monitor_agents_once()
+
+        ws1.close.assert_called_once()
+        ws2.close.assert_called_once()
+
+    async def test_connect_updates_last_seen(self):
+        manager = ConnectionManager()
+        ws = AsyncMock()
+
+        await manager.connect("agent-1", ws)
+
+        assert "agent-1" in manager.last_seen
+
+    async def test_disconnect_removes_last_seen(self):
+        manager = ConnectionManager()
+        ws = AsyncMock()
+        manager.active["agent-1"] = ws
+        manager.last_seen["agent-1"] = time.monotonic()
+
+        manager.disconnect("agent-1", ws)
+
+        assert "agent-1" not in manager.last_seen
+
+
+class TestReadTimeout:
+    """WebSocket read timeout — silent agent detected and marked OFFLINE."""
+
+    def _mock_agent(self, agent_id="agent-1", name="test-agent"):
+        agent = MagicMock()
+        agent.id = agent_id
+        agent.name = name
+        agent.fingerprint = None
+        agent.status = None
+        agent.last_seen = None
+        return agent
+
+    def _mock_session(self):
+        session = AsyncMock()
+        session.add = MagicMock()
+        return session
+
+    async def test_timeout_marks_agent_offline(self):
+        """If receive_json blocks beyond heartbeat_timeout the agent is marked OFFLINE."""
+        manager = ConnectionManager()
+        ws = AsyncMock()
+        ws.receive_json = AsyncMock(side_effect=TimeoutError)
+        session = self._mock_session()
+        agent = self._mock_agent()
+
+        with patch.object(manager, "authenticate", new=AsyncMock(return_value=agent)):
+            await manager.handle_connection(ws, session)
+
+        session.commit.assert_called()
+        assert agent.status == AgentStatus.OFFLINE
 
 
 _SCAN_RESULT_1 = {

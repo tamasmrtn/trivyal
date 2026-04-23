@@ -39,7 +39,9 @@ async def lifespan(app: FastAPI):
     async with AsyncSession(engine, expire_on_commit=False) as session:
         await get_hub_settings(session)
     task = asyncio.create_task(_acceptance_expiry_loop())
+    await manager.start_monitor()
     yield
+    await manager.stop_monitor()
     task.cancel()
     with suppress(asyncio.CancelledError):
         await task

@@ -68,7 +68,7 @@ class HubSettings(SQLModel, table=True):
 class Agent(SQLModel, table=True):
     id: str = Field(default_factory=_new_id, primary_key=True)
     name: str = Field(unique=True, index=True)
-    token_hash: str
+    token_hash: str = Field(index=True)
     fingerprint: str | None = None
     status: AgentStatus = Field(default=AgentStatus.OFFLINE)
     last_seen: datetime | None = None

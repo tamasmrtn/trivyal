@@ -1,6 +1,8 @@
 """Tests for core/auth.py."""
 
 import hashlib
+import os
+import platform
 import socket
 from base64 import b64encode
 from unittest.mock import patch
@@ -20,24 +22,60 @@ class TestGetMachineFingerprint:
     def test_deterministic(self):
         assert get_machine_fingerprint() == get_machine_fingerprint()
 
-    def test_falls_back_to_hostname_when_machine_id_missing(self, tmp_path):
-        with patch("trivyal_agent.core.auth.Path") as mock_path_cls:
-            fake_path = mock_path_cls.return_value
-            fake_path.exists.return_value = False
-            result = get_machine_fingerprint()
-        expected = hashlib.sha256(socket.gethostname().encode()).hexdigest()
-        assert result == expected
+    def test_persisted_fingerprint_takes_priority(self, tmp_path):
+        fp_file = tmp_path / "fingerprint"
+        fp_file.write_text("a" * 64)
+
+        result = get_machine_fingerprint(data_dir=tmp_path)
+
+        assert result == "a" * 64
 
     def test_uses_machine_id_when_available(self, tmp_path):
-        machine_id_file = tmp_path / "machine-id"
-        machine_id_file.write_text("test-machine-id-123\n")
-        with patch("trivyal_agent.core.auth.Path") as mock_path_cls:
-            fake_path = mock_path_cls.return_value
-            fake_path.exists.return_value = True
-            fake_path.read_text.return_value = "test-machine-id-123\n"
-            result = get_machine_fingerprint()
+        with patch("trivyal_agent.core.auth._read_file") as mock_read:
+            mock_read.side_effect = lambda p: "test-machine-id-123" if "machine-id" in p else None
+            result = get_machine_fingerprint(data_dir=tmp_path)
+
         expected = hashlib.sha256(b"test-machine-id-123").hexdigest()
         assert result == expected
+
+    def test_tries_dmi_uuid_when_machine_id_missing(self, tmp_path):
+        with patch("trivyal_agent.core.auth._read_file") as mock_read:
+            mock_read.side_effect = lambda p: "valid-dmi-uuid-here" if "dmi" in p else None
+            result = get_machine_fingerprint(data_dir=tmp_path)
+
+        expected = hashlib.sha256(b"valid-dmi-uuid-here").hexdigest()
+        assert result == expected
+
+    def test_rejects_known_bad_dmi_uuid(self, tmp_path):
+        with patch("trivyal_agent.core.auth._read_file") as mock_read:
+            mock_read.side_effect = lambda p: "03000200-0400-0500-0006-000700080009" if "dmi" in p else None
+            result = get_machine_fingerprint(data_dir=tmp_path)
+
+        # Should fall back to composite, not use the bad UUID
+        composite = f"{socket.gethostname()}:{os.cpu_count()}:{platform.machine()}"
+        expected = hashlib.sha256(composite.encode()).hexdigest()
+        assert result == expected
+
+    def test_composite_fallback_uses_multiple_factors(self, tmp_path):
+        with patch("trivyal_agent.core.auth._read_file", return_value=None):
+            result = get_machine_fingerprint(data_dir=tmp_path)
+
+        composite = f"{socket.gethostname()}:{os.cpu_count()}:{platform.machine()}"
+        expected = hashlib.sha256(composite.encode()).hexdigest()
+        assert result == expected
+
+    def test_persists_newly_computed_fingerprint(self, tmp_path):
+        with patch("trivyal_agent.core.auth._read_file", return_value=None):
+            result = get_machine_fingerprint(data_dir=tmp_path)
+
+        fp_file = tmp_path / "fingerprint"
+        assert fp_file.exists()
+        assert fp_file.read_text() == result
+
+    def test_works_without_data_dir(self):
+        result = get_machine_fingerprint(data_dir=None)
+        assert isinstance(result, str)
+        assert len(result) == 64
 
 
 class TestVerifyHubSignature:

@@ -65,4 +65,5 @@ USER trivyal
 
 CMD ["uvicorn", "trivyal_hub.main:app", \
      "--host", "0.0.0.0", "--port", "8099", \
-     "--no-access-log"]
+     "--no-access-log", \
+     "--ws-max-size", "10485760"]
