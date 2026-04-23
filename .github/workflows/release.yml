@@ -183,7 +183,7 @@ jobs:
       # --- Copa: patch OS-level vulnerabilities (amd64) ---
 
       - name: Scan for patchable OS vulnerabilities
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
           format: json
