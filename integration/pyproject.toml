@@ -1,6 +1,6 @@
 [project]
 name = "trivyal-integration"
-version = "0.6.3"
+version = "0.6.4"
 description = "Integration tests for Trivyal — requires Docker and Docker Compose"
 requires-python = ">=3.12"
 dependencies = [
