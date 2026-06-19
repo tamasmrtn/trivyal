@@ -16,7 +16,7 @@ jobs:
     name: Bump version and open PR
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.RELEASE_BOT_TOKEN }}
 
