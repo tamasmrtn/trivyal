@@ -134,10 +134,7 @@ export interface TopCve {
 }
 
 export type MisconfigStatus =
-  | "active"
-  | "fixed"
-  | "accepted"
-  | "false_positive";
+  "active" | "fixed" | "accepted" | "false_positive";
 
 export interface MisconfigFindingResponse {
   id: string;
