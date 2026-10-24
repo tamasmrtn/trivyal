@@ -2,7 +2,7 @@
 # checkov:skip=CKV_DOCKER_2: healthcheck is defined in docker-compose.agent.yml
 
 # ── Stage 1: Extract Trivy binary ────────────────────────────────────────────
-FROM aquasec/trivy:0.72.0 AS trivy-source
+FROM aquasec/trivy:0.74.0 AS trivy-source
 # Nothing to run — we only need the binary at /usr/local/bin/trivy
 
 

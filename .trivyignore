@@ -42,3 +42,13 @@ CVE-2026-33747
 # Unauthorized file access via Git URL fragment. Trivy runs as a local read-only scanner.
 # Awaiting upstream Trivy release with buildkit >= 0.28.1.
 CVE-2026-33748
+
+# CVE-2026-84304 — HIGH severity in google.golang.org/grpc embedded in the Trivy binary.
+# Trivy runs as a local CLI scanner and does not expose a gRPC endpoint. Not exploitable.
+# Fixed in gRPC-Go v1.83.1; Trivy v0.74.0 ships v1.82.1. Awaiting upstream release.
+CVE-2026-84304
+
+# CVE-2026-84445 — HIGH severity in google.golang.org/grpc embedded in the Trivy binary.
+# Trivy runs as a local CLI scanner and does not expose a gRPC endpoint. Not exploitable.
+# Fixed in gRPC-Go v1.82.2; Trivy v0.74.0 ships v1.82.1. Awaiting upstream release.
+CVE-2026-84445
